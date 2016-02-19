@@ -70,8 +70,8 @@ def estimate( file, detailed ):
                 print " % 6.1f" % (array(Y[i]).mean() )
             else:
                 # do a full report
-                print " % 6.1f +/- % 5.1f" \
-                   % (array(Y[i]).mean(), 1.96*s[i]/sqrt(stratum_samples) )
+                print " % 6.1f +/- % 5.1f SD % 5.1f" \
+                   % (array(Y[i]).mean(), 1.96*s[i]/sqrt(stratum_samples), s[i] )
 
         print
 
@@ -82,9 +82,10 @@ def estimate( file, detailed ):
         if p[i] > 0.0 and stratum_samples > 2:
             est += p[i]/stratum_samples * array(Y[i]).sum()
 
-    delta = 1.96 * sum(p*s) / sqrt(num_samples)
+    ssd = sum(p*s)
+    delta = 1.96 * ssd / sqrt(num_samples)
 
-    print "%6i  % 5.1f +/- % 5.1f" % (num_samples, est, delta ),
+    print "%6i  % 5.1f +/- % 5.1f SD % 5.1f" % (num_samples, est, delta, ssd ),
 
     return
 
