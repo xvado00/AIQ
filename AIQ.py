@@ -35,6 +35,11 @@ def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program )
               + str(s1) + " " + str(r1) + " " + str(r2) + "\n" )
         log_file.flush()
         
+    # save successfully used program to adaptive samples file
+    if sampling and not isnan(r1) and not isnan(r2):
+        adaptive_sample_file.write( str(stratum) + " " + program + "\n" )
+        adaptive_sample_file.flush()
+
     return (s1,r1,r2)
 
 
@@ -313,16 +318,19 @@ def usage():
     print "python AIQ -r reference_machine[,param1[,param2[...]]] " \
         + "-a agent[,param1[,agent_param2[...]]] " \
         + "-d discount_rate [-s sample_size] [-l episode_length] " \
-        + "[-n cluster_node] [-t threads] [--log] [--simple_mc]" \
+        + "[-n cluster_node] [-t threads] [--log] [--save_samples] " \
+        + "[--simple_mc]" \
 
 
 # main function that just sets things up and then calls the sampler
 logging  = False
 log_file = None
+sampling = False
+adaptive_sample_file = None
 
 def main():
 
-    global logging, log_file
+    global logging, log_file, sampling, adaptive_sample_file
 
     print
     print "AIQ version 1.0"
@@ -331,7 +339,7 @@ def main():
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
-                                   ["help", "log","simple_mc"])
+                                   ["help", "log", "save_samples", "simple_mc"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -367,13 +375,14 @@ def main():
             for a in args:
                 refm_params.append( float(a) )
         
-        elif opt == "-d": disc_rate          = float(arg)
-        elif opt == "-l": episode_length     = int(arg)
-        elif opt == "-s": sample_size        = int(arg)
-        elif opt == "-n": cluster_node       = "_"+arg
-        elif opt == "-t": threads            = int(arg)
-        elif opt == "--log":       logging   = True
-        elif opt == "--simple_mc": simple_mc = True
+        elif opt == "-d": disc_rate                 = float(arg)
+        elif opt == "-l": episode_length            = int(arg)
+        elif opt == "-s": sample_size               = int(arg)
+        elif opt == "-n": cluster_node              = "_"+arg
+        elif opt == "-t": threads                   = int(arg)
+        elif opt == "--log":            logging     = True
+        elif opt == "--save_samples":   sampling    = True
+        elif opt == "--simple_mc":      simple_mc   = True
         else:
             print "Unrecognised option"
             usage()
@@ -462,6 +471,14 @@ def main():
         log_file.flush()
         print "Logging to file:         " + log_file_name
 
+    # set up file to save used adaptive samples
+    if sampling:
+        adaptive_sample_file_name = "./adaptive-samples/" + str(refm) + "_" + str(disc_rate) + "_" \
+                        + str(episode_length) + "_" + str(agent) + cluster_node \
+                        + strftime("_%Y_%m%d_%H_%M_%S",localtime()) + ".samples"
+        adaptive_sample_file = open( adaptive_sample_file_name, 'w' )
+        print "Saving used adaptive samples to file: " + adaptive_sample_file_name
+
     # run an estimation algorithm
     if simple_mc:
         simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, sample_size )
@@ -476,6 +493,9 @@ def main():
 
     # close log file
     if logging: log_file.close()
+
+    # close adaptive samples file
+    if sampling: adaptive_sample_file.close()
 
     
 if __name__ == "__main__":
