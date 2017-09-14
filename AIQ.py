@@ -319,7 +319,7 @@ def usage():
         + "-a agent[,param1[,agent_param2[...]]] " \
         + "-d discount_rate [-s sample_size] [-l episode_length] " \
         + "[-n cluster_node] [-t threads] [--log] [--save_samples] " \
-        + "[--simple_mc]" \
+        + "[--verbose_log_el] [--simple_mc]" \
 
 
 # main function that just sets things up and then calls the sampler
@@ -327,10 +327,13 @@ logging  = False
 log_file = None
 sampling = False
 adaptive_sample_file = None
+logging_el = False
+log_el_files = []
 
 def main():
 
     global logging, log_file, sampling, adaptive_sample_file
+    global logging_el, log_el_files
 
     print
     print "AIQ version 1.0"
@@ -339,7 +342,8 @@ def main():
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
-                                   ["help", "log", "save_samples", "simple_mc"])
+                                   ["help", "log", "save_samples", "simple_mc",
+                                    "verbose_log_el"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -383,6 +387,7 @@ def main():
         elif opt == "--log":            logging     = True
         elif opt == "--save_samples":   sampling    = True
         elif opt == "--simple_mc":      simple_mc   = True
+        elif opt == "--verbose_log_el": logging_el  = True
         else:
             print "Unrecognised option"
             usage()
