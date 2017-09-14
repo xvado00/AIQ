@@ -24,9 +24,9 @@ import getopt, sys, os
 def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program ):
 
     # run twice with flipped reward second time
-    s1, r1 = _test_agent(refm_call, a_call,  1.0, episode_length,\
+    s1, r1, ir1 = _test_agent(refm_call, a_call,  1.0, episode_length,\
                          disc_rate, stratum, program)
-    s2, r2 = _test_agent(refm_call, a_call, -1.0, episode_length, \
+    s2, r2, ir2 = _test_agent(refm_call, a_call, -1.0, episode_length, \
                          disc_rate, stratum, program)
 
     # log successful result to file
@@ -35,6 +35,15 @@ def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program )
               + str(s1) + " " + str(r1) + " " + str(r2) + "\n" )
         log_file.flush()
         
+    # log successful intermediate results to files
+    if logging_el and not isnan(r1) and not isnan(r2):
+        for i in range( episode_length / intermediate_length ):
+            log_el_file = log_el_files.pop(0)
+            log_el_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
+                  + str(s1) + " " + str( ir1.pop(0) ) + " " + str( ir2.pop(0) ) + "\n" )
+            log_el_file.flush()
+            log_el_files.append( log_el_file )
+
     # save successfully used program to adaptive samples file
     if sampling and not isnan(r1) and not isnan(r2):
         adaptive_sample_file.write( str(stratum) + " " + program + "\n" )
@@ -57,18 +66,32 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
     disc_reward = 0.0
     discount    = 1.0
 
+    # list of intermediate results
+    disc_rewards = []
+
     reward, observations = refm.reset( program )
 
-    for i in range( episode_length ):
+    for i in range(1, episode_length + 1 ):
         action = agent.perceive( observations, rflip*reward )
         reward, observations, steps = refm.act( action )
 
         # we signal failure with a NaN so as not to upset
         # the parallel map running this with an exception
-        if steps == refm.max_steps: return (stratum,float('nan'))
+        if steps == refm.max_steps: return (stratum,float('nan'),disc_rewards)
 
         disc_reward += discount*rflip*reward
         discount    *= disc_rate
+
+        if logging_el:
+            if i % intermediate_length == 0:
+                intermediate_reward = disc_reward
+                # if discounting normalise (and thus correct for missing tail)
+                if disc_rate != 1.0:
+                    intermediate_reward /= ( (1.0-disc_rate**(i+1))/(1.0-disc_rate) )
+                else:
+                    # otherwise just normalise by the episode length
+                    intermediate_reward /= i
+                disc_rewards.append( intermediate_reward )
 
     # if discounting normalise (and thus correct for missing tail)
     if disc_rate != 1.0:
@@ -81,7 +104,7 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
     agent = None
     refm  = None
     
-    return stratum, disc_reward
+    return stratum, disc_reward, disc_rewards
 
 
 
