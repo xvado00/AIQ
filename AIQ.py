@@ -16,7 +16,7 @@ from scipy import ones, zeros, floor, array, sqrt, log, ceil, cov
 from random import choice
 from multiprocessing import Pool
 
-import getopt, sys
+import getopt, sys, os
 
 
 # Test an agent by performing both positive and negative reward runs in order
@@ -329,11 +329,12 @@ sampling = False
 adaptive_sample_file = None
 logging_el = False
 log_el_files = []
+intermediate_length = 1000
 
 def main():
 
     global logging, log_file, sampling, adaptive_sample_file
-    global logging_el, log_el_files
+    global logging_el, log_el_files, intermediate_length
 
     print
     print "AIQ version 1.0"
@@ -484,6 +485,30 @@ def main():
         adaptive_sample_file = open( adaptive_sample_file_name, 'w' )
         print "Saving used adaptive samples to file: " + adaptive_sample_file_name
 
+    # set up files to log results at intermediate ELs
+    if logging_el:
+        if episode_length > intermediate_length:
+            log_el_dir_name  = str(refm) + "_" + str(disc_rate) + "_" \
+                            + str(episode_length) + "_" + str(agent) + cluster_node \
+                            + strftime("_%Y_%m%d_%H_%M_%S",localtime())
+            if not os.path.exists( "./log-el/" + log_el_dir_name ):
+                os.makedirs( "./log-el/" + log_el_dir_name )
+            for i in range( 1, episode_length / intermediate_length + 1 ):
+                log_el_file_name = "./log-el/" + log_el_dir_name + "/" + str(refm) + "_" \
+                        + str(disc_rate) + "_" + str(i * intermediate_length) + "_" + str(agent) + cluster_node \
+                        + strftime("_%Y_%m%d_%H_%M_%S",localtime()) + ".log"
+                log_el_file = open( log_el_file_name, 'w' )
+                for j in range( 1, len(dist) ):
+                    log_el_file.write( str(dist[j]) + " " )
+                log_el_file.write("\n")
+                log_el_file.flush()
+                log_el_files.append( log_el_file )
+            print "Verbose logging at intermediate ELs to directory: ./log-el/" + log_el_dir_name
+        else:
+            print "Warning: Episode Length " + str(episode_length) + " is less than Intermediate Episode Length " \
+                    + str(intermediate_length) + "! Verbose logging at Intermediate Episode Lengths will be disabled."
+            logging_el = False
+
     # run an estimation algorithm
     if simple_mc:
         simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, sample_size )
@@ -502,6 +527,10 @@ def main():
     # close adaptive samples file
     if sampling: adaptive_sample_file.close()
 
+    # close log-el files
+    if logging_el:
+        for i in range( episode_length / intermediate_length ):
+            log_el_files.pop().close()
     
 if __name__ == "__main__":
     main()
