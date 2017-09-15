@@ -84,21 +84,11 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
 
         if logging_el:
             if i % intermediate_length == 0:
-                intermediate_reward = disc_reward
-                # if discounting normalise (and thus correct for missing tail)
-                if disc_rate != 1.0:
-                    intermediate_reward /= ( (1.0-disc_rate**(i+1))/(1.0-disc_rate) )
-                else:
-                    # otherwise just normalise by the episode length
-                    intermediate_reward /= i
+                intermediate_reward = normalise_reward( i, disc_rate, disc_reward )
                 disc_rewards.append( intermediate_reward )
 
-    # if discounting normalise (and thus correct for missing tail)
-    if disc_rate != 1.0:
-        disc_reward /= ( (1.0-disc_rate**(episode_length+1))/(1.0-disc_rate) )
-    else:
-	    # otherwise just normalise by the episode length
-        disc_reward /= episode_length
+    # normalise and possibly discount reward
+    disc_reward = normalise_reward( episode_length, disc_rate, disc_reward )
 
     # dispose of agent and reference machine
     agent = None
@@ -106,6 +96,17 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
     
     return stratum, disc_reward, disc_rewards
 
+
+# Normalise and possibly discount reward
+def normalise_reward( episode_length, disc_rate, disc_reward ):
+    # if discounting normalise (and thus correct for missing tail)
+    if disc_rate != 1.0:
+        disc_reward /= ( (1.0-disc_rate**(episode_length+1))/(1.0-disc_rate) )
+    else:
+        # otherwise just normalise by the episode length
+        disc_reward /= episode_length
+
+    return disc_reward
 
 
 # Simple MC estimator, useful for checking the more complex adaptive estimator.
