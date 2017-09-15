@@ -344,6 +344,7 @@ def usage():
         + "-d discount_rate [-s sample_size] [-l episode_length] " \
         + "[-n cluster_node] [-t threads] [--log] [--save_samples] " \
         + "[--verbose_log_el] [--simple_mc]" \
+        + "[--multi_round_el=method[,param1[,param2[...]]]" \
 
 
 # main function that just sets things up and then calls the sampler
@@ -354,11 +355,15 @@ adaptive_sample_file = None
 logging_el = False
 log_el_files = []
 intermediate_length = 1000
+multi_rounding_el = False
+mrel_method = None
+mrel_params = []
 
 def main():
 
     global logging, log_file, sampling, adaptive_sample_file
     global logging_el, log_el_files, intermediate_length
+    global multi_rounding_el, mrel_method, mrel_params
 
     print
     print "AIQ version 1.0"
@@ -367,8 +372,8 @@ def main():
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
-                                   ["help", "log", "save_samples", "simple_mc",
-                                    "verbose_log_el"])
+                                   ["multi_round_el=", "help", "log", "simple_mc", 
+                                    "save_samples", "verbose_log_el"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -413,6 +418,13 @@ def main():
         elif opt == "--save_samples":   sampling    = True
         elif opt == "--simple_mc":      simple_mc   = True
         elif opt == "--verbose_log_el": logging_el  = True
+        elif opt == "--multi_round_el":
+            multi_rounding_el  = True
+            args = arg.split(",")
+            mrel_method = args.pop(0)
+            for a in args:
+                mrel_params.append( float(a) )
+
         else:
             print "Unrecognised option"
             usage()
@@ -425,6 +437,10 @@ def main():
     if logging and simple_mc:  raise NameError("Simple mc doesn't do logging")
     if agent_str      == "Manual" and not simple_mc:
         raise NameError("Manual control only works with the simple mc sampler")
+    if multi_rounding_el and not logging_el:
+        raise NameError("multi-round EL convergence possible only with verbose EL logging")
+    if multi_rounding_el and not mrel_method == "delta":
+        raise NameError("unrecognized multi-round EL convergence method (only 'delta' implemented)")
 
     # compute episode_length to have 95% of the infinite total in each episode
     # or if episode_length given compute the proportion that this gives
