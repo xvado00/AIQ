@@ -71,24 +71,34 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
 
     reward, observations = refm.reset( program )
 
+    mrel_stop = False
+    estimated_ioc = 0
+
     for i in range(1, episode_length + 1 ):
-        action = agent.perceive( observations, rflip*reward )
-        reward, observations, steps = refm.act( action )
+        # test only if not sufficiently converged
+        # or if no mrel optimalization used
+        if not mrel_stop:
+            action = agent.perceive( observations, rflip*reward )
+            reward, observations, steps = refm.act( action )
 
-        # we signal failure with a NaN so as not to upset
-        # the parallel map running this with an exception
-        if steps == refm.max_steps: return (stratum,float('nan'),disc_rewards)
+            # we signal failure with a NaN so as not to upset
+            # the parallel map running this with an exception
+            if steps == refm.max_steps: return (stratum,float('nan'),disc_rewards)
 
-        disc_reward += discount*rflip*reward
-        discount    *= disc_rate
+            disc_reward += discount*rflip*reward
+            discount    *= disc_rate
+            estimated_ioc = i
 
         if logging_el:
             if i % intermediate_length == 0:
-                intermediate_reward = normalise_reward( i, disc_rate, disc_reward )
+                intermediate_reward = normalise_reward( estimated_ioc, disc_rate, disc_reward )
                 disc_rewards.append( intermediate_reward )
 
+        if multi_rounding_el and not mrel_stop:
+            mrel_stop = evaluate_mrel_stopping_condition()
+
     # normalise and possibly discount reward
-    disc_reward = normalise_reward( episode_length, disc_rate, disc_reward )
+    disc_reward = normalise_reward( estimated_ioc, disc_rate, disc_reward )
 
     # dispose of agent and reference machine
     agent = None
@@ -107,6 +117,14 @@ def normalise_reward( episode_length, disc_rate, disc_reward ):
         disc_reward /= episode_length
 
     return disc_reward
+
+
+# Evaluate if a stopping condition for a multi-round EL convergence optimalization
+# is met.
+def evaluate_mrel_stopping_condition():
+    mrel_stop = False
+
+    return mrel_stop
 
 
 # Simple MC estimator, useful for checking the more complex adaptive estimator.
