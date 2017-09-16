@@ -566,6 +566,8 @@ def main():
             print "Warning: Episode Length " + str(episode_length) + " is less than Intermediate Episode Length " \
                     + str(intermediate_length) + "! Verbose logging at Intermediate Episode Lengths will be disabled."
             logging_el = False
+            if multi_rounding_el:
+                raise NameError("multi-round EL convergence possible only with verbose EL logging")
 
     # run an estimation algorithm
     if simple_mc:
