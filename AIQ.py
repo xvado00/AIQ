@@ -120,8 +120,21 @@ def normalise_reward( episode_length, disc_rate, disc_reward ):
 
 
 # Evaluate if a stopping condition for a multi-round EL convergence optimalization
-# is met.
+# is met based on which evaluation method is used.
 def evaluate_mrel_stopping_condition():
+    mrel_stop = False
+
+    # Call specific evaluator
+    if mrel_method == "Delta":
+        mrel_stop = _evaluate_mrel_Delta_stopping_condition()
+
+    return mrel_stop
+
+
+# Specific evaluation methods for a multi-round EL convergence optimalization
+# Delta: absolute difference in score at two consecutive ELs to evaluate
+# is less than a specified difference
+def _evaluate_mrel_Delta_stopping_condition():
     mrel_stop = False
 
     return mrel_stop
@@ -457,8 +470,29 @@ def main():
         raise NameError("Manual control only works with the simple mc sampler")
     if multi_rounding_el and not logging_el:
         raise NameError("multi-round EL convergence possible only with verbose EL logging")
-    if multi_rounding_el and not mrel_method == "delta":
-        raise NameError("unrecognized multi-round EL convergence method (only 'delta' implemented)")
+    if multi_rounding_el and not mrel_method == "Delta":
+        raise NameError("unrecognized multi-round EL convergence method (only 'Delta' implemented)")
+
+    # Load multi-EL methods parameters or set defaults
+    if multi_rounding_el:
+        if mrel_method == "Delta":
+            global mrel_Delta_diff, mrel_Delta_el
+            mrel_Delta_diff = 0.1
+            mrel_Delta_el  = 1000
+            if len( mrel_params ) > 0:
+                param =  mrel_params.pop(0)
+                # rewards are bounded and Delta is absolute
+                if param >= 0 and param < 100:
+                    mrel_Delta_diff = param
+                else:
+                    raise NameError("invalid MREL Delta parameter value: minimal difference must be in [0,100).")
+
+                if len( mrel_params ) > 0:
+                    param =  int( mrel_params.pop(0) )
+                    if param >= intermediate_length and param <= episode_length / 2 and param % intermediate_length == 0:
+                        mrel_Delta_el = param
+                    else:
+                        raise NameError("invalid MREL Delta parameter value: EL to evaluate must be in [1000,EL/2) and mod(0) by 1000.")
 
     # compute episode_length to have 95% of the infinite total in each episode
     # or if episode_length given compute the proportion that this gives
