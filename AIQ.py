@@ -95,7 +95,7 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
                 disc_rewards.append( intermediate_reward )
 
         if multi_rounding_el and not mrel_stop:
-            mrel_stop = evaluate_mrel_stopping_condition()
+            mrel_stop = evaluate_mrel_stopping_condition(i)
 
     # normalise and possibly discount reward
     disc_reward = normalise_reward( estimated_ioc, disc_rate, disc_reward )
@@ -121,12 +121,12 @@ def normalise_reward( episode_length, disc_rate, disc_reward ):
 
 # Evaluate if a stopping condition for a multi-round EL convergence optimalization
 # is met based on which evaluation method is used.
-def evaluate_mrel_stopping_condition():
+def evaluate_mrel_stopping_condition( current_iteration ):
     mrel_stop = False
 
     # Call specific evaluator
     if mrel_method == "Delta":
-        mrel_stop = _evaluate_mrel_Delta_stopping_condition()
+        mrel_stop = _evaluate_mrel_Delta_stopping_condition( current_iteration )
 
     return mrel_stop
 
@@ -134,8 +134,17 @@ def evaluate_mrel_stopping_condition():
 # Specific evaluation methods for a multi-round EL convergence optimalization
 # Delta: absolute difference in score at two consecutive ELs to evaluate
 # is less than a specified difference
-def _evaluate_mrel_Delta_stopping_condition():
+def _evaluate_mrel_Delta_stopping_condition( current_iteration ):
     mrel_stop = False
+
+    # check only every mrel_Delta_el iterations
+    if current_iteration % mrel_Delta_el == 0:
+        # verify there is enough intermediate results to work with
+        if len(disc_rewards) >= 2 * mrel_Delta_el / intermediate_length:
+            reward1 = disc_rewards[-1]
+            reward2 = disc_rewards[ -( 1 + mrel_Delta_el / intermediate_length ) ]
+            if abs( reward1 - reward2 ) < mrel_Delta_diff:
+                mrel_stop = True
 
     return mrel_stop
 
