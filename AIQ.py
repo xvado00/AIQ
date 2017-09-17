@@ -100,6 +100,17 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
     # normalise and possibly discount reward
     disc_reward = normalise_reward( estimated_ioc, disc_rate, disc_reward )
 
+    # save debug information
+    if debuging_mrel:
+        if mrel_stop:
+            mrel_status = "converged"
+        else:
+            mrel_status = "finished"
+        mrel_debug_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
+                + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc) \
+                + " " + program + " " + str(rflip) + "\n" )
+        mrel_debug_file.flush()
+
     # dispose of agent and reference machine
     agent = None
     refm  = None
@@ -385,6 +396,7 @@ def usage():
         + "[-n cluster_node] [-t threads] [--log] [--save_samples] " \
         + "[--verbose_log_el] [--simple_mc]" \
         + "[--multi_round_el=method[,param1[,param2[...]]]" \
+        + "[--debug_mrel]" \
 
 
 # main function that just sets things up and then calls the sampler
@@ -398,12 +410,15 @@ intermediate_length = 1000
 multi_rounding_el = False
 mrel_method = None
 mrel_params = []
+debuging_mrel = False
+mrel_debug_file = None
 
 def main():
 
     global logging, log_file, sampling, adaptive_sample_file
     global logging_el, log_el_files, intermediate_length
     global multi_rounding_el, mrel_method, mrel_params
+    global debuging_mrel, mrel_debug_file
 
     print
     print "AIQ version 1.0"
@@ -413,7 +428,7 @@ def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
                                    ["multi_round_el=", "help", "log", "simple_mc", 
-                                    "save_samples", "verbose_log_el"])
+                                    "save_samples", "verbose_log_el", "debug_mrel"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -465,6 +480,7 @@ def main():
             for a in args:
                 mrel_params.append( float(a) )
 
+        elif opt == "--debug_mrel":     debuging_mrel = True
         else:
             print "Unrecognised option"
             usage()
@@ -481,6 +497,8 @@ def main():
         raise NameError("multi-round EL convergence possible only with verbose EL logging")
     if multi_rounding_el and not mrel_method == "Delta":
         raise NameError("unrecognized multi-round EL convergence method (only 'Delta' implemented)")
+    if debuging_mrel and not multi_rounding_el:
+        raise NameError("debuging of multi-round EL convergence possible only with multi-round EL convergence enabled")
 
     # Load multi-EL methods parameters or set defaults
     if multi_rounding_el:
@@ -612,6 +630,20 @@ def main():
             if multi_rounding_el:
                 raise NameError("multi-round EL convergence possible only with verbose EL logging")
 
+    # set up file to save multi-round EL convergence debug informations
+    if debuging_mrel:
+        mrel_debug_file_name = "./debug/" + str(refm) + "_" + str(disc_rate) + "_" \
+                        + str(episode_length) + "_" + str(agent) + cluster_node \
+                        + strftime("_%Y_%m%d_%H_%M_%S",localtime()) + ".log"
+        mrel_debug_file = open( mrel_debug_file_name, 'w' )
+        mrel_debug_file.write( "# Multi-round EL convergence method: " + mrel_method + "\n")
+        mrel_debug_file.write( "# Multi-round EL convergence method parameters:\n" )
+        if mrel_method == "Delta":
+            mrel_debug_file.write("Delta=" + str(mrel_Delta_diff) + "\n")
+            mrel_debug_file.write("EL=" + str(mrel_Delta_el) + "\n")
+        mrel_debug_file.flush()
+        print "MREL debug logging to file:         " + mrel_debug_file_name
+
     # run an estimation algorithm
     if simple_mc:
         simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, sample_size )
@@ -635,6 +667,9 @@ def main():
         for i in range( episode_length / intermediate_length ):
             log_el_files.pop().close()
     
+    # close mrel debug file
+    if debuging_mrel: mrel_debug_file.close()
+
 if __name__ == "__main__":
     main()
 
