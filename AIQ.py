@@ -639,8 +639,8 @@ def main():
         mrel_debug_file.write( "# Multi-round EL convergence method: " + mrel_method + "\n")
         mrel_debug_file.write( "# Multi-round EL convergence method parameters:\n" )
         if mrel_method == "Delta":
-            mrel_debug_file.write("Delta=" + str(mrel_Delta_diff) + "\n")
-            mrel_debug_file.write("EL=" + str(mrel_Delta_el) + "\n")
+            mrel_debug_file.write("#   Delta=" + str(mrel_Delta_diff) + "\n")
+            mrel_debug_file.write("#   EL=" + str(mrel_Delta_el) + "\n")
         mrel_debug_file.flush()
         print "MREL debug logging to file:         " + mrel_debug_file_name
 
