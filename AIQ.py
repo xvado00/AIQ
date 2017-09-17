@@ -73,6 +73,7 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
 
     mrel_stop = False
     estimated_ioc = 0
+    convergence_logged = False
 
     for i in range(1, episode_length + 1 ):
         # test only if not sufficiently converged
@@ -88,17 +89,24 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
             disc_reward += discount*rflip*reward
             discount    *= disc_rate
             estimated_ioc = i
+        # if sufficiently converged expect the same score
+        # for the rest of episode
+        else:
+            disc_reward += discount*converged_reward
+            discount    *= disc_rate
+
 
         if logging_el:
             if i % intermediate_length == 0:
-                intermediate_reward = normalise_reward( estimated_ioc, disc_rate, disc_reward )
+                intermediate_reward = normalise_reward( i, disc_rate, disc_reward )
                 disc_rewards.append( intermediate_reward )
 
         if multi_rounding_el and not mrel_stop:
-            mrel_stop = evaluate_mrel_stopping_condition( disc_rewards, i )
+            mrel_stop, converged_reward = evaluate_mrel_stopping_condition( disc_rewards, i )
+            mrel_rewards.append( disc_reward )
 
     # normalise and possibly discount reward
-    disc_reward = normalise_reward( estimated_ioc, disc_rate, disc_reward )
+    disc_reward = normalise_reward( episode_length, disc_rate, disc_reward )
 
     # save debug information
     if debuging_mrel:
@@ -137,9 +145,10 @@ def evaluate_mrel_stopping_condition( disc_rewards, current_iteration ):
 
     # Call specific evaluator
     if mrel_method == "Delta":
-        mrel_stop = _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration )
+        mrel_stop, converged_reward = _evaluate_mrel_Delta_stopping_condition( \
+                disc_rewards, current_iteration )
 
-    return mrel_stop
+    return mrel_stop, converged_reward
 
 
 # Specific evaluation methods for a multi-round EL convergence optimalization
@@ -147,6 +156,7 @@ def evaluate_mrel_stopping_condition( disc_rewards, current_iteration ):
 # is less than a specified difference
 def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration ):
     mrel_stop = False
+    converged_reward = None
 
     # check only every mrel_Delta_el iterations
     if current_iteration % mrel_Delta_el == 0:
@@ -156,8 +166,14 @@ def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration ):
             reward2 = disc_rewards[ -( 1 + mrel_Delta_el / intermediate_length ) ]
             if abs( reward1 - reward2 ) < mrel_Delta_diff:
                 mrel_stop = True
+                # compute avg reward from the converged part of interaction history
+                disc_reward1 = mrel_rewards[-1]
+                disc_reward2 = mrel_rewards[-mrel_Delta_el]
+                # TODO: probably does not work with discounting
+                converged_reward = normalise_reward( mrel_Delta_el, 1.0, \
+                        disc_reward1 - disc_reward2 )
 
-    return mrel_stop
+    return mrel_stop, converged_reward
 
 
 # Simple MC estimator, useful for checking the more complex adaptive estimator.
@@ -410,6 +426,7 @@ intermediate_length = 1000
 multi_rounding_el = False
 mrel_method = None
 mrel_params = []
+mrel_rewards = []
 debuging_mrel = False
 mrel_debug_file = None
 
@@ -417,7 +434,7 @@ def main():
 
     global logging, log_file, sampling, adaptive_sample_file
     global logging_el, log_el_files, intermediate_length
-    global multi_rounding_el, mrel_method, mrel_params
+    global multi_rounding_el, mrel_method, mrel_params, mrel_rewards
     global debuging_mrel, mrel_debug_file
 
     print
