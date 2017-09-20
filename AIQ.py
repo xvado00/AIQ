@@ -148,6 +148,10 @@ def evaluate_mrel_stopping_condition( disc_rewards, current_iteration ):
         mrel_stop, converged_reward = _evaluate_mrel_Delta_stopping_condition( \
                 disc_rewards, current_iteration )
 
+    if mrel_method == "delta":
+        mrel_stop, converged_reward = _evaluate_mrel_delta_stopping_condition( \
+                disc_rewards, current_iteration )
+
     return mrel_stop, converged_reward
 
 
@@ -172,6 +176,31 @@ def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration ):
                 # TODO: probably does not work with discounting
                 converged_reward = normalise_reward( mrel_Delta_el, 1.0, \
                         disc_reward1 - disc_reward2 )
+
+    return mrel_stop, converged_reward
+
+
+# delta: relative difference in score at two consecutive ELs to evaluate
+# is less than a specified percentage
+def _evaluate_mrel_delta_stopping_condition( disc_rewards, current_iteration ):
+    mrel_stop = False
+    converged_reward = None
+
+    # check only every mrel_delta_el iterations
+    if current_iteration % mrel_delta_el == 0:
+        # verify there is enough intermediate results to work with
+        if len(disc_rewards) >= 2 * mrel_delta_el / intermediate_length:
+            reward1 = disc_rewards[-1]
+            reward2 = disc_rewards[ -( 1 + mrel_delta_el / intermediate_length ) ]
+            if reward1 != 0:
+                if abs( 100 * ( reward1 - reward2 ) / reward1 ) < mrel_delta_diff:
+                    mrel_stop = True
+                    # compute avg reward from the converged part of interaction history
+                    disc_reward1 = mrel_rewards[-1]
+                    disc_reward2 = mrel_rewards[-mrel_delta_el]
+                    # TODO: probably does not work with discounting
+                    converged_reward = normalise_reward( mrel_delta_el, 1.0, \
+                            disc_reward1 - disc_reward2 )
 
     return mrel_stop, converged_reward
 
@@ -512,8 +541,9 @@ def main():
         raise NameError("Manual control only works with the simple mc sampler")
     if multi_rounding_el and not logging_el:
         raise NameError("multi-round EL convergence possible only with verbose EL logging")
-    if multi_rounding_el and not mrel_method == "Delta":
-        raise NameError("unrecognized multi-round EL convergence method (only 'Delta' implemented)")
+    if multi_rounding_el and not mrel_method in [ "Delta", "delta" ]:
+        raise NameError("unrecognized multi-round EL convergence method \
+                (only 'Delta' or 'delta' implemented)")
     if debuging_mrel and not multi_rounding_el:
         raise NameError("debuging of multi-round EL convergence possible only with multi-round EL convergence enabled")
 
@@ -529,14 +559,36 @@ def main():
                 if param >= 0 and param < 100:
                     mrel_Delta_diff = param
                 else:
-                    raise NameError("invalid MREL Delta parameter value: minimal difference must be in [0,100).")
+                    raise NameError("invalid MREL Delta parameter value: \
+                            minimal difference must be in [0,100).")
 
                 if len( mrel_params ) > 0:
                     param =  int( mrel_params.pop(0) )
                     if param >= intermediate_length and param <= episode_length / 2 and param % intermediate_length == 0:
                         mrel_Delta_el = param
                     else:
-                        raise NameError("invalid MREL Delta parameter value: EL to evaluate must be in [1000,EL/2) and mod(0) by 1000.")
+                        raise NameError("invalid MREL Delta parameter value: \
+                                EL to evaluate must be in [1000,EL/2) and mod(0) by 1000.")
+        elif mrel_method == "delta":
+            global mrel_delta_diff, mrel_delta_el
+            mrel_delta_diff = 0.1
+            mrel_delta_el  = 1000
+            if len( mrel_params ) > 0:
+                param =  mrel_params.pop(0)
+                # delta is absolute value in percent, lower values are interesting
+                if param >= 0 and param <= 100:
+                    mrel_delta_diff = param
+                else:
+                    raise NameError("invalid MREL delta parameter value: \
+                            minimal percentage must be in [0,100].")
+
+                if len( mrel_params ) > 0:
+                    param =  int( mrel_params.pop(0) )
+                    if param >= intermediate_length and param <= episode_length / 2 and param % intermediate_length == 0:
+                        mrel_delta_el = param
+                    else:
+                        raise NameError("invalid MREL delta parameter value: \
+                                EL to evaluate must be in [1000,EL/2) and mod(0) by 1000.")
 
     # compute episode_length to have 95% of the infinite total in each episode
     # or if episode_length given compute the proportion that this gives
@@ -658,6 +710,9 @@ def main():
         if mrel_method == "Delta":
             mrel_debug_file.write("#   Delta=" + str(mrel_Delta_diff) + "\n")
             mrel_debug_file.write("#   EL=" + str(mrel_Delta_el) + "\n")
+        elif mrel_method == "delta":
+            mrel_debug_file.write("#   delta=" + str(mrel_delta_diff) + "\n")
+            mrel_debug_file.write("#   EL=" + str(mrel_delta_el) + "\n")
         mrel_debug_file.flush()
         print "MREL debug logging to file:         " + mrel_debug_file_name
 
