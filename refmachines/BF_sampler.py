@@ -21,20 +21,28 @@ STRATA = 21
 
 
 # get a random program, excluding over time and passive ones
-def active_program( refm ):
+def active_program( refm, minimal_length ):
 
     program = refm.random_program()
-    env_class = test_class( refm, program )
+    program_length = len(program)
+    while program_length < minimal_length:
+        program = refm.random_program()
+        program_length = len(program)
+    env_class = test_class( refm, program, minimal_length )
     while env_class == -1 or env_class == 0:
         program = refm.random_program()
-        env_class = test_class( refm, program )
+        program_length = len(program)
+        while program_length < minimal_length:
+            program = refm.random_program()
+            program_length = len(program)
+        env_class = test_class( refm, program, minimal_length )
         
     return program, env_class
 
 
 # Test an environment 4 times to determine its class with higher probability
 
-def test_class( refm, program ):
+def test_class( refm, program, minimal_length ):
 
     # must be passive as it lacks read and/or write
     if program.count('.') == 0 or program.count(',') == 0: return 0
@@ -67,15 +75,15 @@ def test_class( refm, program ):
     else:
         # must be "other", so stratify by program length
         l = len(program)
-        if   l <  8: env_type = 11
-        elif l < 10: env_type = 12
-        elif l < 13: env_type = 13
-        elif l < 16: env_type = 14
-        elif l < 20: env_type = 15
-        elif l < 24: env_type = 16
-        elif l < 31: env_type = 17
-        elif l < 43: env_type = 18
-        elif l < 60: env_type = 19
+        if   l < minimal_length +  8: env_type = 11
+        elif l < minimal_length + 10: env_type = 12
+        elif l < minimal_length + 13: env_type = 13
+        elif l < minimal_length + 16: env_type = 14
+        elif l < minimal_length + 20: env_type = 15
+        elif l < minimal_length + 24: env_type = 16
+        elif l < minimal_length + 31: env_type = 17
+        elif l < minimal_length + 43: env_type = 18
+        elif l < minimal_length + 60: env_type = 19
         else:
             env_type = 20
             #print " type 20 ", s1, s2, s3, s4, s5
@@ -176,7 +184,7 @@ def usage():
     print
     print "AIQ program sample classifier"
     print
-    print "python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]]"
+    print "python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]] -l minimal_length"
     print
 
     
@@ -188,12 +196,13 @@ def main():
     print
 
     sample_size = 0
+    minimal_length = 0
     refm_str = None
     refm_params = []
 
     # get the command line arguments
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "s:r:", ["help"])
+        opts, args = getopt.getopt(sys.argv[1:], "s:r:l:", ["help"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -207,6 +216,7 @@ def main():
     # parse arguments
     for opt, arg in opts:
         if   opt == "-s": sample_size = int(arg)
+        elif   opt == "-l": minimal_length = int(arg)
         elif opt == "-r": 
             args = arg.split(",")
             refm_str = args.pop(0)
@@ -264,7 +274,7 @@ def main():
 
     # generate the samples
     for i in range( sample_size ):
-        program, s = active_program( refm )
+        program, s = active_program( refm, minimal_length )
         sample_file.write( str(s) + " " + program + "\n" )
         sample_file.flush()
 
