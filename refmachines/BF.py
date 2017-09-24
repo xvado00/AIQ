@@ -246,7 +246,15 @@ class BF(ReferenceMachine):
             if loop_depth < 0: instr = '#'   # if ] unmatched, end the program
             program += instr
 
-        # remove some simple pointless instruction combinations
+        optimized_program = self._optimize_program( program )
+
+        return optimized_program
+
+
+
+    # remove some simple pointless instruction combinations
+    def _optimize_program( self, program ):
+
         program = replace(program,'+-','')
         program = replace(program,'-+','')
         program = replace(program,'<>','')
@@ -254,7 +262,6 @@ class BF(ReferenceMachine):
         program = replace(program,'[]','')
 
         return program
-
 
 
 
