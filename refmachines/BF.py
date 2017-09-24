@@ -8,6 +8,7 @@
 
 import random
 import sys
+import re
 
 from ReferenceMachine import *
 
@@ -261,15 +262,15 @@ class BF(ReferenceMachine):
 
         replace_patterns = [
                 # the original patterns by Legg and Vennes
-                ['+-',''], ['-+',''], ['<>',''], ['><',''], ['[]','']
+                ['\+\-',''], ['\-\+',''], ['<>',''], ['><',''], ['\[\]',''],
                 ]
 
         pattern_replaced = True
         while pattern_replaced:
             pattern_replaced = False
             for replace_pattern in replace_patterns:
-                if replace_pattern[0] in program:
-                    program = replace(program,replace_pattern[0],replace_pattern[1])
+                if re.search(replace_pattern[0],program) is not None:
+                    program = re.sub(replace_pattern[0],replace_pattern[1],program)
                     pattern_replaced = True
 
         return program
