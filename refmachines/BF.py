@@ -250,13 +250,22 @@ class BF(ReferenceMachine):
         if theoretical_sampler:
             return program
         else:
-            # remove some simple pointless instruction combinations
-            program = replace(program,'+-','')
-            program = replace(program,'-+','')
-            program = replace(program,'<>','')
-            program = replace(program,'><','')
-            program = replace(program,'[]','')
-            return program
+            optimized_program = self._optimize_program( program )
+
+            return optimized_program
+
+
+
+    # remove some simple pointless instruction combinations
+    def _optimize_program( self, program ):
+
+        program = replace(program,'+-','')
+        program = replace(program,'-+','')
+        program = replace(program,'<>','')
+        program = replace(program,'><','')
+        program = replace(program,'[]','')
+
+        return program
 
 
 
