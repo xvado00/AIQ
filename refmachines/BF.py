@@ -259,6 +259,14 @@ class BF(ReferenceMachine):
         replace_patterns = [
                 # the original patterns by Legg and Vennes
                 ['\+\-',''], ['\-\+',''], ['<>',''], ['><',''], ['\[\]',''],
+                # the new patterns by Vadinsky
+                ['%[\+\-]+','%'], #incrementation/decrementation of random symbol
+                ['[%\+\-]+%','%'], #overwritten by a random symbol
+                ['[%\+\-]+,',','], #overwritten by a read action
+                ['\[[\+\-%]+\]%','%'], #zeroing overwritten by a random symbol
+                ['\[[\+\-%]+\],',','], #zeroing overwritten by a read action
+                ['\[[\+\-\%][\+\-%]+\]%','[+]'], #multiple instructions in zeroing loop
+                ['%\[\+\]','[+]'] #zeroing a random symbol
                 ]
 
         pattern_replaced = True
