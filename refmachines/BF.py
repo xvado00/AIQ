@@ -255,11 +255,18 @@ class BF(ReferenceMachine):
     # remove some simple pointless instruction combinations
     def _optimize_program( self, program ):
 
-        program = replace(program,'+-','')
-        program = replace(program,'-+','')
-        program = replace(program,'<>','')
-        program = replace(program,'><','')
-        program = replace(program,'[]','')
+        replace_patterns = [
+                # the original patterns by Legg and Vennes
+                ['+-',''], ['-+',''], ['<>',''], ['><',''], ['[]','']
+                ]
+
+        pattern_replaced = True
+        while pattern_replaced:
+            pattern_replaced = False
+            for replace_pattern in replace_patterns:
+                if replace_pattern[0] in program:
+                    program = replace(program,replace_pattern[0],replace_pattern[1])
+                    pattern_replaced = True
 
         return program
 
