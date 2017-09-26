@@ -192,8 +192,8 @@ def _evaluate_mrel_delta_stopping_condition( disc_rewards, current_iteration ):
         if len(disc_rewards) >= 2 * mrel_delta_el / intermediate_length:
             reward1 = disc_rewards[-1]
             reward2 = disc_rewards[ -( 1 + mrel_delta_el / intermediate_length ) ]
-            if reward1 != 0:
-                if abs( 100 * ( reward1 - reward2 ) / reward1 ) < mrel_delta_diff:
+            if reward1 != 0.0:
+                if abs( 100.0 * ( reward1 - reward2 ) / reward1 ) < mrel_delta_diff:
                     mrel_stop = True
                     # compute avg reward from the converged part of interaction history
                     disc_reward1 = mrel_rewards[-1]
