@@ -21,30 +21,32 @@ STRATA = 21
 
 
 # get a random program, excluding over time and passive ones
-def active_program( refm, minimal_length, extending_shorter ):
+def active_program( refm, minimal_length, extending_shorter, theoretical_sampler ):
 
-    program = refm.random_program()
+    program = refm.random_program( theoretical_sampler )
     program_length = len(program)
     while program_length < minimal_length:
         if extending_shorter:
             program = replace(program,'#','')
-            program += refm.random_program()
+            program += refm.random_program( theoretical_sampler )
         else:
-            program = refm.random_program()
+            program = refm.random_program( theoretical_sampler )
         program_length = len(program)
 
     env_class = test_class( refm, program, minimal_length )
-    while env_class == -1 or env_class == 0:
-        program = refm.random_program()
-        program_length = len(program)
-        while program_length < minimal_length:
-            if extending_shorter:
-                program = replace(program,'#','')
-                program += refm.random_program()
-            else:
-                program = refm.random_program()
+    # Do not exclude over time and passive programs if generating a theoretical sample
+    if not theoretical_sampler:
+        while env_class == -1 or env_class == 0:
+            program = refm.random_program( theoretical_sampler )
             program_length = len(program)
-        env_class = test_class( refm, program, minimal_length )
+            while program_length < minimal_length:
+                if extending_shorter:
+                    program = replace(program,'#','')
+                    program += refm.random_program( theoretical_sampler )
+                else:
+                    program = refm.random_program( theoretical_sampler )
+                program_length = len(program)
+            env_class = test_class( refm, program, minimal_length )
         
     return program, env_class
 
@@ -194,7 +196,7 @@ def usage():
     print "AIQ program sample classifier"
     print
     print "python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]] " \
-            + "-l minimal_length [--extend_shorter]"
+            + "-l minimal_length [--extend_shorter] [--theoretical_sampler]"
     print
 
     
@@ -214,7 +216,7 @@ def main():
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "s:r:l:",
-                ["extend_shorter", "help"])
+                ["extend_shorter", "theoretical_sampler", "help"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -226,6 +228,7 @@ def main():
         sys.exit()
 
     # parse arguments
+    theoretical_sampler = False
     for opt, arg in opts:
         if   opt == "-s": sample_size = int(arg)
         elif   opt == "-l": minimal_length = int(arg)
@@ -235,6 +238,8 @@ def main():
             for a in args:
                 refm_params.append( float(a) )
         elif opt == "--extend_shorter": extending_shorter = True
+        elif opt == "--theoretical_sampler":
+            theoretical_sampler = True
         else:
             print "Unrecognised option"
             usage()
@@ -287,7 +292,8 @@ def main():
 
     # generate the samples
     for i in range( sample_size ):
-        program, s = active_program( refm, minimal_length, extending_shorter )
+        program, s = active_program( refm, minimal_length, extending_shorter, \
+                theoretical_sampler )
         sample_file.write( str(s) + " " + program + "\n" )
         sample_file.flush()
 

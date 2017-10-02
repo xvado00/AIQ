@@ -233,7 +233,7 @@ class BF(ReferenceMachine):
 
 
     # sample a random program, used by BF_sampler.py
-    def random_program( self ):
+    def random_program( self, theoretical_sampler ):
 
         program = ""
         loop_depth = 0
@@ -246,15 +246,17 @@ class BF(ReferenceMachine):
             if loop_depth < 0: instr = '#'   # if ] unmatched, end the program
             program += instr
 
-        # remove some simple pointless instruction combinations
-        program = replace(program,'+-','')
-        program = replace(program,'-+','')
-        program = replace(program,'<>','')
-        program = replace(program,'><','')
-        program = replace(program,'[]','')
-
-        return program
-
+        # Otimize unless generating a theoretical sample
+        if theoretical_sampler:
+            return program
+        else:
+            # remove some simple pointless instruction combinations
+            program = replace(program,'+-','')
+            program = replace(program,'-+','')
+            program = replace(program,'<>','')
+            program = replace(program,'><','')
+            program = replace(program,'[]','')
+            return program
 
 
 
