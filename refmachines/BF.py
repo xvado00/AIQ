@@ -234,7 +234,7 @@ class BF(ReferenceMachine):
 
 
     # sample a random program, used by BF_sampler.py
-    def random_program( self, improved_optimization ):
+    def random_program( self, improved_optimization, theoretical_sampler ):
 
         program = ""
         loop_depth = 0
@@ -247,9 +247,13 @@ class BF(ReferenceMachine):
             if loop_depth < 0: instr = '#'   # if ] unmatched, end the program
             program += instr
 
-        optimized_program = self._optimize_program( program, improved_optimization )
+        # Otimize unless generating a theoretical sample
+        if theoretical_sampler:
+            return program
+        else:
+            optimized_program = self._optimize_program( program, improved_optimization )
+            return optimized_program
 
-        return optimized_program
 
 
 
