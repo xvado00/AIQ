@@ -90,6 +90,9 @@ Arguments:
 
 --log  Switch on output logging
 
+--save_samples  Switch on saving of environment programs used during
+  the test to a file, needs adaptive-samples directory.
+
 --simple_mc Use a simple MC sample rather than the stratified sampler.
   Useful for sanity checks and also debugging as it doesn't do any
   async stuff etc.
