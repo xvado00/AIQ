@@ -179,7 +179,9 @@ in a sample file.  You have to name the file correctly yourself to
 match what AIQ expects.  The -s option tell it how many samples to
 generate. The file consists of just rows of samples so you can
 concatenate the output of different runs to make a combined sample
-file.
+file. The -l option specifies minimal length of generated programs
+(by default, shorter programs are dropped during the sampling process,
+to extend the shorter programs add option --extend_shorter.)
 
 
 /refmachine/sample 
