@@ -21,28 +21,28 @@ STRATA = 21
 
 
 # get a random program, excluding over time and passive ones
-def active_program( refm, minimal_length, extending_shorter ):
+def active_program( refm, minimal_length, extending_shorter, improved_optimization ):
 
-    program = refm.random_program()
+    program = refm.random_program( improved_optimization )
     program_length = len(program)
     while program_length < minimal_length:
         if extending_shorter:
             program = replace(program,'#','')
-            program += refm.random_program()
+            program += refm.random_program( improved_optimization )
         else:
-            program = refm.random_program()
+            program = refm.random_program( improved_optimization )
         program_length = len(program)
 
     env_class = test_class( refm, program, minimal_length )
     while env_class == -1 or env_class == 0:
-        program = refm.random_program()
+        program = refm.random_program( improved_optimization )
         program_length = len(program)
         while program_length < minimal_length:
             if extending_shorter:
                 program = replace(program,'#','')
-                program += refm.random_program()
+                program += refm.random_program( improved_optimization )
             else:
-                program = refm.random_program()
+                program = refm.random_program( improved_optimization )
             program_length = len(program)
         env_class = test_class( refm, program, minimal_length )
         
@@ -194,7 +194,7 @@ def usage():
     print "AIQ program sample classifier"
     print
     print "python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]] " \
-            + "-l minimal_length [--extend_shorter]"
+            + "-l minimal_length [--extend_shorter] [--improved_optimization]"
     print
 
     
@@ -208,13 +208,14 @@ def main():
     sample_size = 0
     minimal_length = 0
     extending_shorter = False
+    improved_optimization = False
     refm_str = None
     refm_params = []
 
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "s:r:l:",
-                ["extend_shorter", "help"])
+                ["extend_shorter", "improved_optimization", "help"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -235,6 +236,7 @@ def main():
             for a in args:
                 refm_params.append( float(a) )
         elif opt == "--extend_shorter": extending_shorter = True
+        elif opt == "--improved_optimization": improved_optimization = True
         else:
             print "Unrecognised option"
             usage()
@@ -287,7 +289,8 @@ def main():
 
     # generate the samples
     for i in range( sample_size ):
-        program, s = active_program( refm, minimal_length, extending_shorter )
+        program, s = active_program( refm, minimal_length, extending_shorter, \
+                improved_optimization )
         sample_file.write( str(s) + " " + program + "\n" )
         sample_file.flush()
 
