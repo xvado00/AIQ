@@ -96,6 +96,12 @@ Arguments:
 --verbose_log_el  Swith on logging intermediate results every 1000
   interactions, needs log-el directory.
 
+--multi_round_el=method,param1,param2,...  Swith on multi-round EL
+  convergence optimalization using selected method and parameters:
+    Delta,Difference,EL_to_evaluate  absolute difference of AIQ
+		  is less then Difference, computed every EL_to_evaluate nr.
+			of iterations.
+
 --simple_mc Use a simple MC sample rather than the stratified sampler.
   Useful for sanity checks and also debugging as it doesn't do any
   async stuff etc.
