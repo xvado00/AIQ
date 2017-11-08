@@ -234,7 +234,7 @@ class BF(ReferenceMachine):
 
 
     # sample a random program, used by BF_sampler.py
-    def random_program( self, theoretical_sampler ):
+    def random_program( self, theoretical_sampler, improved_optimization ):
 
         program = ""
         loop_depth = 0
@@ -251,19 +251,22 @@ class BF(ReferenceMachine):
         if theoretical_sampler:
             return program
         else:
-            optimized_program = self._optimize_program( program )
+            optimized_program = self._optimize_program( program, improved_optimization )
 
             return optimized_program
 
 
 
     # remove some simple pointless instruction combinations
-    def _optimize_program( self, program ):
+    def _optimize_program( self, program, improved_optimization ):
 
+        # the original patterns by Legg and Vennes
         replace_patterns = [
-                # the original patterns by Legg and Vennes
-                ['\+\-',''], ['\-\+',''], ['<>',''], ['><',''], ['\[\]',''],
-                # the new patterns by Vadinsky
+                ['\+\-',''], ['\-\+',''], ['<>',''], ['><',''], ['\[\]','']
+                ]
+        # the new patterns by Vadinsky
+        if improved_optimization:
+            replace_patterns += [
                 ['%[\+\-]+','%'], #incrementation/decrementation of random symbol
                 ['[%\+\-]+%','%'], #overwritten by a random symbol
                 ['[%\+\-]+,',','], #overwritten by a read action
