@@ -93,6 +93,9 @@ Arguments:
 --save_samples  Switch on saving of environment programs used during
   the test to a file, needs adaptive-samples directory.
 
+--verbose_log_el  Swith on logging intermediate results every 1000
+  interactions, needs log-el directory.
+
 --simple_mc Use a simple MC sample rather than the stratified sampler.
   Useful for sanity checks and also debugging as it doesn't do any
   async stuff etc.
