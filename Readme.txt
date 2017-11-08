@@ -192,6 +192,8 @@ concatenate the output of different runs to make a combined sample
 file. The -l option specifies minimal length of generated programs
 (by default, shorter programs are dropped during the sampling process,
 to extend the shorter programs add option --extend_shorter.)
+The --improved_optimization option enables optimization of sampled
+programs by removing further pointless code.
 
 
 /refmachine/sample 
