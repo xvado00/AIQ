@@ -181,7 +181,9 @@ generate. The file consists of just rows of samples so you can
 concatenate the output of different runs to make a combined sample
 file. The -l option specifies minimal length of generated programs
 (by default, shorter programs are dropped during the sampling process,
-to extend the shorter programs add option --extend_shorter.)
+to extend the shorter programs add option --extend_shorter.) The
+ --theoretical_sampler option disables all BF code optimization and
+also outputs programs that are passive or overtime.
 
 
 /refmachine/sample 
