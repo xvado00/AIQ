@@ -101,6 +101,9 @@ Arguments:
     Delta,Difference,EL_to_evaluate  absolute difference of AIQ
 		  is less then Difference, computed every EL_to_evaluate nr.
 			of iterations.
+    delta,difference,EL_to_evaluate  relative difference of AIQ
+		  is less then difference in percent, computed every
+			 EL_to_evaluate nr. of iterations.
 
 --simple_mc Use a simple MC sample rather than the stratified sampler.
   Useful for sanity checks and also debugging as it doesn't do any
