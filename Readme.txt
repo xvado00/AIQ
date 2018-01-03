@@ -98,6 +98,7 @@ Arguments:
 
 --multi_round_el=method,param1,param2,...  Swith on multi-round EL
   convergence optimalization using selected method and parameters:
+	(this technique increases the consumption of RAM considerably)
     Delta,Difference,EL_to_evaluate  absolute difference of AIQ
 		  is less then Difference, computed every EL_to_evaluate nr.
 			of iterations.
