@@ -13,6 +13,7 @@ from scipy import linspace, stats, floor, sqrt
 from string import replace, lower
 import getopt, sys
 from os.path import isfile
+import re
 
 import BF
 
@@ -21,7 +22,8 @@ STRATA = 21
 
 
 # get a random program, excluding over time and passive ones
-def active_program( refm, minimal_length, extending_shorter, theoretical_sampler, improved_optimization ):
+def active_program( refm, minimal_length, extending_shorter, theoretical_sampler, \
+        improved_optimization, improved_discriminativeness ):
 
     program = refm.random_program( theoretical_sampler, improved_optimization )
     program_length = len(program)
@@ -33,7 +35,7 @@ def active_program( refm, minimal_length, extending_shorter, theoretical_sampler
             program = refm.random_program( theoretical_sampler, improved_optimization )
         program_length = len(program)
 
-    env_class = test_class( refm, program, minimal_length )
+    env_class = test_class( refm, program, minimal_length, improved_discriminativeness )
     # Do not exclude over time and passive programs if generating a theoretical sample
     if not theoretical_sampler:
         while env_class == -1 or env_class == 0:
@@ -46,17 +48,22 @@ def active_program( refm, minimal_length, extending_shorter, theoretical_sampler
                 else:
                     program = refm.random_program( theoretical_sampler, improved_optimization )
                 program_length = len(program)
-            env_class = test_class( refm, program, minimal_length )
+            env_class = test_class( refm, program, minimal_length, improved_discriminativeness )
         
     return program, env_class
 
 
 # Test an environment 4 times to determine its class with higher probability
 
-def test_class( refm, program, minimal_length ):
+def test_class( refm, program, minimal_length, improved_discriminativeness ):
 
     # must be passive as it lacks read and/or write
     if program.count('.') == 0 or program.count(',') == 0: return 0
+
+    # classify passive/nondiscriminative programs based on their syntax
+    if improved_discriminativeness:
+        discriminative = classify_discriminativeness( program )
+        if not discriminative: return 0
 
     cycles = 200 # cycles to run test for
 
@@ -189,6 +196,29 @@ def _test_class( refm, cycles, program ):
 
     return env_type, rewards
 
+# Classify program as passive/nondiscriminative based on its syntax
+
+def classify_discriminativeness( program ):
+    # random rewards, type 1a
+    if re.search('^[^\.\[\]]*%\..*',program) is not None:
+        return False
+    # random rewards, type 2a
+    if re.search('^[^\.\[\]]*%>[\+\-,%]+<[\+\-]*\..*',program) is not None:
+        return False
+    # random rewards, type 3a
+    if re.search('^[^\.\[\]]*%<[\+\-,%]+>[\+\-]*\..*',program) is not None:
+        return False
+    # random rewards, type 1b
+    if re.search('^[\+\-]*\..*%#',program) is not None:
+        # only if it will not end early due to a write limit,
+        # could be relaxed based on nr of observations
+        if re.search('^[^\.\[\]]*\.[^\.\[\]]*\.[^\.\[\]]*#',program) is not None:
+            return False
+
+
+    # likely discriminative
+    return True
+
 
 
 def usage():
@@ -197,7 +227,7 @@ def usage():
     print
     print "python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]] " \
             + "-l minimal_length [--extend_shorter] [--theoretical_sampler]" \
-            + "[--improved_optimization]"
+            + "[--improved_optimization] [--improved_discriminativeness]"
     print
 
     
@@ -212,13 +242,15 @@ def main():
     minimal_length = 0
     extending_shorter = False
     improved_optimization = False
+    improved_discriminativeness = False
     refm_str = None
     refm_params = []
 
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "s:r:l:",
-                ["extend_shorter", "theoretical_sampler", "improved_optimization", "help"])
+                ["extend_shorter", "theoretical_sampler", "improved_optimization", \
+                    "improved_discriminativeness", "help"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -243,6 +275,7 @@ def main():
         elif opt == "--theoretical_sampler":
             theoretical_sampler = True
         elif opt == "--improved_optimization": improved_optimization = True
+        elif opt == "--improved_discriminativeness": improved_discriminativeness = True
         else:
             print "Unrecognised option"
             usage()
@@ -259,6 +292,11 @@ def main():
     if refm_str != "BF":
         print "Can only handle BF reference machine at the moment!"
         sys.exit()
+
+    if improved_discriminativeness and not improved_optimization:
+        print "Warning: Improving programs discriminativeness without optimizing for" \
+                + "pointless code. The method is likely to be much less successful."
+        print
 
     refm_call = refm_str + "." + refm_str + "("
     
@@ -296,7 +334,7 @@ def main():
     # generate the samples
     for i in range( sample_size ):
         program, s = active_program( refm, minimal_length, extending_shorter, \
-                theoretical_sampler, improved_optimization )
+                theoretical_sampler, improved_optimization, improved_discriminativeness )
         sample_file.write( str(s) + " " + program + "\n" )
         sample_file.flush()
 
