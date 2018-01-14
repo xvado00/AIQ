@@ -208,6 +208,12 @@ def classify_discriminativeness( program ):
     # random rewards, type 3a
     if re.search('^[^\.\[\]]*%<[\+\-,%]+>[\+\-]*\..*',program) is not None:
         return False
+    # random rewards, type 4a
+    if re.search('^[^\[\.]*%\[[\+\-\[%]*\.[^\.]*#',program) is not None:
+        return False
+    # random rewards, type 5a
+    if re.search('^[^\[\.]*%\[[\+\-%]*\.[^\[\]]*\][^\.]*#',program) is not None:
+        return False
     # random rewards, type 1b
     if re.search('^[\+\-]*\..*%#',program) is not None:
         # only if it will not end early due to a write limit,
