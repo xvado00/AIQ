@@ -186,6 +186,8 @@ The  --theoretical_sampler option disables all BF code optimization
 and also outputs programs that are passive or overtime.
 The --improved_optimization option enables optimization of sampled
 programs by removing further pointless code.
+The --improved_discriminativeness option enables optimization of
+sampled programs by removing more non-discriminative programs.
 
 
 /refmachine/sample 
