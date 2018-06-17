@@ -193,9 +193,11 @@ file. The -l option specifies minimal length of generated programs
 (by default, shorter programs are dropped during the sampling process,
 to extend the shorter programs add option --extend_shorter.)
 The --improved_optimization option enables optimization of sampled
-programs by removing further pointless code. The --theoretical_sampler
-option disables all BF code optimization and also outputs programs
-that are passive or overtime.
+programs by removing further pointless code.
+The --improved_discriminativeness option enables optimization of
+sampled programs by removing more non-discriminative programs.
+The --theoretical_sampler option disables all BF code optimization
+and also outputs programs that are passive or overtime.
 
 
 /refmachine/sample 
