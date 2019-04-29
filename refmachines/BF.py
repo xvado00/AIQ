@@ -268,7 +268,7 @@ class BF(ReferenceMachine):
                 ['[%\+\-]+,',','], #overwritten by a read action
                 ['\[[\+\-%]+\]%','%'], #zeroing overwritten by a random symbol
                 ['\[[\+\-%]+\],',','], #zeroing overwritten by a read action
-                ['\[[\+\-\%][\+\-%]+\]%','[+]'], #multiple instructions in zeroing loop
+                ['\[[\+\-\%][\+\-%]+\]','[+]'], #multiple instructions in zeroing loop
                 ['%\[\+\]','[+]'] #zeroing a random symbol
                 ]
 
