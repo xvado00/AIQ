@@ -6,7 +6,7 @@
 # Released under GNU GPLv3
 #
 
-from Agent import Agent
+from .Agent import Agent
 
 from random import randint, randrange, random
 
@@ -38,8 +38,8 @@ class HLQ_l(Agent):
             self.gamma = gamma
 
         if self.gamma >= 1.0:
-            print "Error: HLQ learning can only handle an internal discount rate ", \
-                  "that is below 1.0"
+            print("Error: HLQ learning can only handle an internal discount rate ",
+                  "that is below 1.0")
             sys.exit()
 
         self.reset()
@@ -73,8 +73,8 @@ class HLQ_l(Agent):
            nstate = observations[i] * self.obs_symbols**i
 
         # alias some things to make equations more managable
-        gamma = self.gamma;  Lambda = self.Lambda;
-        state = self.state;  action = self.action;
+        gamma = self.gamma;  Lambda = self.Lambda
+        state = self.state;  action = self.action
 
         Q = self.Q_value
         E = self.E_trace        
@@ -103,6 +103,7 @@ class HLQ_l(Agent):
 
         for s in range(self.num_states):
             for a in range(self.num_actions):
+                # @ToDo - Decide if one should keep division that returns of approximation of float or return floored division as it was in python 2
                 B[s,a] = E[s,a] / (V[nstate,naction] - gamma*E[nstate,naction]) \
                          * (Lambda*V[nstate,naction]+(nstate==s and naction==a)) \
                          / (Lambda*V[s,a]           +(nstate==s and naction==a))

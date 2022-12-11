@@ -7,7 +7,7 @@
 # Released under GNU GPLv3
 #
 
-from Agent import Agent
+from .Agent import Agent
 from numpy import zeros, ones, ceil
 import  numpy as np
 import subprocess
@@ -60,8 +60,8 @@ class MC_AIXI(Agent):
         self.reward_bits = int(ceil(log( refm.getNumRewards(), 2.0 )))
         self.num_actions = refm.getNumActions()
 
-        print "obs_bits = ", self.obs_bits
-        print "reward_bits = ", self.reward_bits
+        print("obs_bits = ", self.obs_bits)
+        print("reward_bits = ", self.reward_bits)
 
         self.agent = None
 

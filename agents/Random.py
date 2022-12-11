@@ -6,7 +6,7 @@
 #
 
 from random  import randint
-from Agent   import Agent
+from .Agent   import Agent
 
 class Random(Agent):
 

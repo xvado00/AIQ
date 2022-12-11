@@ -9,11 +9,9 @@
 
 import random
 from numpy import zeros, ones, array
-from scipy import linspace, stats, floor, sqrt
-from string import replace, lower
 import getopt, sys
-from os.path import isfile
 import re
+import os
 
 import BF
 
@@ -22,32 +20,31 @@ STRATA = 21
 
 
 # get a random program, excluding over time and passive ones
-def active_program( refm, minimal_length, extending_shorter, improved_optimization, \
-        improved_discriminativeness, theoretical_sampler  ):
+def active_program( refm, minimal_length, extending_shorter, theoretical_sampler,
+                    improved_optimization, improved_discriminativeness ):
 
-    program = refm.random_program( improved_optimization, theoretical_sampler )
-
+    program = refm.random_program( theoretical_sampler, improved_optimization )
     program_length = len(program)
     while program_length < minimal_length:
         if extending_shorter:
-            program = replace(program,'#','')
-            program += refm.random_program( improved_optimization, theoretical_sampler )
+            program.replace('#','')
+            program += refm.random_program( theoretical_sampler, improved_optimization )
         else:
-            program = refm.random_program( improved_optimization, theoretical_sampler )
+            program = refm.random_program( theoretical_sampler, improved_optimization )
         program_length = len(program)
 
     env_class = test_class( refm, program, minimal_length, improved_discriminativeness )
     # Do not exclude over time and passive programs if generating a theoretical sample
     if not theoretical_sampler:
         while env_class == -1 or env_class == 0:
-            program = refm.random_program( improved_optimization, theoretical_sampler )
+            program = refm.random_program( theoretical_sampler, improved_optimization )
             program_length = len(program)
             while program_length < minimal_length:
                 if extending_shorter:
-                    program = replace(program,'#','')
-                    program += refm.random_program( improved_optimization, theoretical_sampler )
+                    program.replace('#','')
+                    program += refm.random_program( theoretical_sampler, improved_optimization )
                 else:
-                    program = refm.random_program( improved_optimization, theoretical_sampler )
+                    program = refm.random_program( theoretical_sampler, improved_optimization )
                 program_length = len(program)
             env_class = test_class( refm, program, minimal_length, improved_discriminativeness )
         
@@ -229,21 +226,20 @@ def classify_discriminativeness( program ):
 
 
 def usage():
-    print
-    print "AIQ program sample classifier"
-    print
-    print "python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]] " \
-            + "-l minimal_length [--extend_shorter] [--improved_optimization] " \
-            + "[--improved_discriminativeness] [--theoretical_sampler]"
-    print
+    print()
+    print("AIQ program sample classifier")
+    print()
+    print("python BF_sampler.py -s sample_size -r ref_machine[,para1[,para2[...]]] "
+          + "-l minimal_length [--extend_shorter] [--theoretical_sampler]"
+          + "[--improved_optimization] [--improved_discriminativeness]")
+    print()
 
-    
 
 def main():
 
-    print
-    print "BF reference machine program sampler"
-    print
+    print()
+    print("BF reference machine program sampler")
+    print()
 
     sample_size = 0
     minimal_length = 0
@@ -256,10 +252,10 @@ def main():
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "s:r:l:",
-                ["extend_shorter", "improved_optimization", "improved_discriminativeness", \
-                    "theoretical_sampler", "help"])
-    except getopt.GetoptError, err:
-        print str(err)
+                ["extend_shorter", "theoretical_sampler", "improved_optimization",
+                    "improved_discriminativeness", "help"])
+    except getopt.GetoptError as err:
+        print(str(err))
         usage()
         sys.exit(2)
 
@@ -273,40 +269,40 @@ def main():
     for opt, arg in opts:
         if   opt == "-s": sample_size = int(arg)
         elif   opt == "-l": minimal_length = int(arg)
-        elif opt == "-r": 
+        elif opt == "-r":
             args = arg.split(",")
             refm_str = args.pop(0)
             for a in args:
                 refm_params.append( float(a) )
         elif opt == "--extend_shorter": extending_shorter = True
-        elif opt == "--improved_optimization": improved_optimization = True
-        elif opt == "--improved_discriminativeness": improved_discriminativeness = True
         elif opt == "--theoretical_sampler":
             theoretical_sampler = True
+        elif opt == "--improved_optimization": improved_optimization = True
+        elif opt == "--improved_discriminativeness": improved_discriminativeness = True
         else:
-            print "Unrecognised option"
+            print("Unrecognised option")
             usage()
             sys.exit()
 
     if sample_size == 0:
-        print "Error: No sample size set"
+        print("Error: No sample size set")
         sys.exit()
 
     if refm_str == None:
-        print "Missing reference machine"
+        print("Missing reference machine")
         sys.exit()
 
     if refm_str != "BF":
-        print "Can only handle BF reference machine at the moment!"
+        print("Can only handle BF reference machine at the moment!")
         sys.exit()
 
     if improved_discriminativeness and not improved_optimization:
-        print "Warning: Improving programs discriminativeness without optimizing for" \
-                + "pointless code. The method is likely to be much less successful."
-        print
+        print ("Warning: Improving programs discriminativeness without optimizing for"
+                + "pointless code. The method is likely to be much less successful.")
+        print()
 
     refm_call = refm_str + "." + refm_str + "("
-    
+
     if len(refm_params) > 0:
         param = refm_params.pop(0)
         refm_call += str(int(param))
@@ -317,33 +313,46 @@ def main():
     # create reference machine
     refm = eval( refm_call )
 
+    # set_working_directory (useful for windows for example)
+    script_path_with_script = os.path.abspath(__file__)
+    script_name = (os.path.basename(sys.argv[0]))
+    script_path = script_path_with_script.replace(script_name, '')
+    current_path = os.getcwd()
+
+    if (script_path != current_path):
+        os.chdir(script_path)
+
     # output filename
     file_name = "./samples/"
     file_name += refm_call.partition('.')[2] # strip off the module name and dot
     file_name += ".samples"
 
-    print "Output filename: " + file_name
-    print
-
+    print("Output filename: " + file_name)
+    print()
     # check for existing sample file
-    if isfile( file_name ):
-        print "Output sample file already exists, do you want to:"
-        choice = lower(raw_input(" Append, Overwrite or Quit [a/o/q] ? "))
+    if os.path.isfile( file_name ):
+        print("Output sample file already exists, do you want to:")
+        choice = input((" Append, Overwrite or Quit [a/o/q] ? ").lower())
         if   choice == 'a': mode = 'a'
         elif choice == 'o': mode = 'w'
         else: sys.exit()
     else:
         mode = 'w'
 
-    sample_file = open( file_name, mode )
-    
+    sample_file = open( file = file_name, mode = mode )
+
+    percentage = 0
 
     # generate the samples
     for i in range( sample_size ):
-        program, s = active_program( refm, minimal_length, extending_shorter, \
-                improved_optimization, improved_discriminativeness, theoretical_sampler )
+        program, s = active_program( refm, minimal_length, extending_shorter,
+                                     theoretical_sampler, improved_optimization, improved_discriminativeness )
         sample_file.write( str(s) + " " + program + "\n" )
         sample_file.flush()
+
+        if i%10 == 0:
+            print('Progress: ' + str(i) + '/' + str(sample_size) + ' done!', end='\r')
+
 
     sample_file.close()
 

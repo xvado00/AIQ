@@ -12,7 +12,7 @@ from refmachines import *
 from agents import *
 from math import isnan
 from time import sleep, localtime, strftime
-from scipy import ones, zeros, floor, array, sqrt, log, ceil, cov
+from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
 from random import choice
 from multiprocessing import Pool
 
@@ -21,40 +21,46 @@ import getopt, sys, os
 
 # Test an agent by performing both positive and negative reward runs in order
 # to get antithetic variance reduction. 
-def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program ):
+def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program, config ):
 
     # run twice with flipped reward second time
-    s1, r1, ir1 = _test_agent(refm_call, a_call,  1.0, episode_length,\
-                         disc_rate, stratum, program)
-    s2, r2, ir2 = _test_agent(refm_call, a_call, -1.0, episode_length, \
-                         disc_rate, stratum, program)
+    s1, r1, ir1 = _test_agent(refm_call, a_call,  1.0, episode_length,
+                         disc_rate, stratum, program, config)
+    s2, r2, ir2 = _test_agent(refm_call, a_call, -1.0, episode_length,
+                         disc_rate, stratum, program, config)
 
     # log successful result to file
-    if logging and not isnan(r1) and not isnan(r2):
+    if config["logging"] and not isnan(r1) and not isnan(r2):
+        log_file = open( config["log_file_name"], 'a' )
         log_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
               + str(s1) + " " + str(r1) + " " + str(r2) + "\n" )
         log_file.flush()
-        
+        log_file.close()
+
     # log successful intermediate results to files
-    if logging_el and not isnan(r1) and not isnan(r2):
-        for i in range( episode_length / intermediate_length ):
-            log_el_file = log_el_files.pop(0)
+    if config["logging_el"] and not isnan(r1) and not isnan(r2):
+        for i in range( episode_length // intermediate_length ):
+            log_el_file_name = config["log_el_files"].pop(0)
+            log_el_file = open(log_el_file_name, 'a')
             log_el_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
                   + str(s1) + " " + str( ir1.pop(0) ) + " " + str( ir2.pop(0) ) + "\n" )
             log_el_file.flush()
-            log_el_files.append( log_el_file )
+            log_el_file.close()
+            log_el_files.append( log_el_file_name )
 
     # save successfully used program to adaptive samples file
-    if sampling and not isnan(r1) and not isnan(r2):
+    if config["sampling"] and not isnan(r1) and not isnan(r2):
+        adaptive_sample_file = open(config["adaptive_sample_file"], 'a')
         adaptive_sample_file.write( str(stratum) + " " + program + "\n" )
         adaptive_sample_file.flush()
+        adaptive_sample_file.close()
 
     return (s1,r1,r2)
 
 
 # Perform a single run of an agent in an enviornment and collect the results
-def _test_agent( refm_call, agent_call, rflip, episode_length, \
-                 disc_rate, stratum, program ):
+def _test_agent( refm_call, agent_call, rflip, episode_length,
+                 disc_rate, stratum, program, config ):
 
     # create reference machine
     refm = eval( refm_call )
@@ -69,7 +75,7 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
     # list of intermediate results
     disc_rewards = []
 
-    reward, observations = refm.reset( program )
+    reward, observations = refm.reset(program = program )
 
     mrel_stop = False
     estimated_ioc = 0
@@ -92,32 +98,33 @@ def _test_agent( refm_call, agent_call, rflip, episode_length, \
         # if sufficiently converged expect the same score
         # for the rest of episode
         else:
-            disc_reward += discount*converged_reward
+            disc_reward += discount * converged_reward
             discount    *= disc_rate
 
-
-        if logging_el:
-            if i % intermediate_length == 0:
+        if config["logging_el"]:
+            if i % config["intermediate_length"] == 0:
                 intermediate_reward = normalise_reward( i, disc_rate, disc_reward )
                 disc_rewards.append( intermediate_reward )
 
-        if multi_rounding_el and not mrel_stop:
-            mrel_stop, converged_reward = evaluate_mrel_stopping_condition( disc_rewards, i )
-            mrel_rewards.append( disc_reward )
+        if config["multi_rounding_el"] and not mrel_stop:
+            mrel_stop, converged_reward = evaluate_mrel_stopping_condition( disc_rewards, i, config )
+            config["mrel_rewards"].append( disc_reward )
 
     # normalise and possibly discount reward
     disc_reward = normalise_reward( episode_length, disc_rate, disc_reward )
 
     # save debug information
-    if debuging_mrel:
+    if config["debuging_mrel"]:
         if mrel_stop:
             mrel_status = "converged"
         else:
             mrel_status = "finished"
-        mrel_debug_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
-                + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc) \
+        mrel_debug_file = open(config["mrel_debug_file_name"], 'w')
+        mrel_debug_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime())
+                + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc)
                 + " " + program + " " + str(rflip) + "\n" )
         mrel_debug_file.flush()
+        mrel_debug_file.close()
 
     # dispose of agent and reference machine
     agent = None
@@ -140,17 +147,17 @@ def normalise_reward( episode_length, disc_rate, disc_reward ):
 
 # Evaluate if a stopping condition for a multi-round EL convergence optimalization
 # is met based on which evaluation method is used.
-def evaluate_mrel_stopping_condition( disc_rewards, current_iteration ):
+def evaluate_mrel_stopping_condition( disc_rewards, current_iteration, config ):
     mrel_stop = False
 
     # Call specific evaluator
     if mrel_method == "Delta":
-        mrel_stop, converged_reward = _evaluate_mrel_Delta_stopping_condition( \
-                disc_rewards, current_iteration )
+        mrel_stop, converged_reward = _evaluate_mrel_Delta_stopping_condition(
+                disc_rewards, current_iteration, config )
 
     if mrel_method == "delta":
-        mrel_stop, converged_reward = _evaluate_mrel_delta_stopping_condition( \
-                disc_rewards, current_iteration )
+        mrel_stop, converged_reward = _evaluate_mrel_delta_stopping_condition(
+                disc_rewards, current_iteration, config )
 
     return mrel_stop, converged_reward
 
@@ -158,7 +165,7 @@ def evaluate_mrel_stopping_condition( disc_rewards, current_iteration ):
 # Specific evaluation methods for a multi-round EL convergence optimalization
 # Delta: absolute difference in score at two consecutive ELs to evaluate
 # is less than a specified difference
-def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration ):
+def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration, config):
     mrel_stop = False
     converged_reward = None
 
@@ -171,10 +178,10 @@ def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration ):
             if abs( reward1 - reward2 ) < mrel_Delta_diff:
                 mrel_stop = True
                 # compute avg reward from the converged part of interaction history
-                disc_reward1 = mrel_rewards[-1]
-                disc_reward2 = mrel_rewards[-mrel_Delta_el]
+                disc_reward1 = config["mrel_rewards"][-1]
+                disc_reward2 = config["mrel_rewards"][-mrel_Delta_el]
                 # TODO: probably does not work with discounting
-                converged_reward = normalise_reward( mrel_Delta_el, 1.0, \
+                converged_reward = normalise_reward( mrel_Delta_el, 1.0,
                         disc_reward1 - disc_reward2 )
 
     return mrel_stop, converged_reward
@@ -182,7 +189,7 @@ def _evaluate_mrel_Delta_stopping_condition( disc_rewards, current_iteration ):
 
 # delta: relative difference in score at two consecutive ELs to evaluate
 # is less than a specified percentage
-def _evaluate_mrel_delta_stopping_condition( disc_rewards, current_iteration ):
+def _evaluate_mrel_delta_stopping_condition( disc_rewards, current_iteration, config ):
     mrel_stop = False
     converged_reward = None
 
@@ -196,10 +203,10 @@ def _evaluate_mrel_delta_stopping_condition( disc_rewards, current_iteration ):
                 if abs( 100.0 * ( reward1 - reward2 ) / reward1 ) < mrel_delta_diff:
                     mrel_stop = True
                     # compute avg reward from the converged part of interaction history
-                    disc_reward1 = mrel_rewards[-1]
-                    disc_reward2 = mrel_rewards[-mrel_delta_el]
+                    disc_reward1 = config["mrel_rewards"][-1]
+                    disc_reward2 = config["mrel_rewards"][-mrel_Delta_el]
                     # TODO: probably does not work with discounting
-                    converged_reward = normalise_reward( mrel_delta_el, 1.0, \
+                    converged_reward = normalise_reward( mrel_delta_el, 1.0,
                             disc_reward1 - disc_reward2 )
 
     return mrel_stop, converged_reward
@@ -207,22 +214,22 @@ def _evaluate_mrel_delta_stopping_condition( disc_rewards, current_iteration ):
 
 # Simple MC estimator, useful for checking the more complex adaptive estimator.
 # It doesn't do logging as the log file assumes dual runs for antithetic variables.
-def simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, \
-                         sample_size ):
+def simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate,
+                         sample_size, config ):
 
-    print
-    result = zeros((len(sample_data)))
+    print()
+    result = zeros((len(config["sample_data"])))
     i = 0
-    for stratum, program in sample_data:
+    for stratum, program in config["sample_data"]:
         rflip = choice([-1,1])
-        perf = _test_agent( refm_call, agent_call, rflip, episode_length, disc_rate, \
-                            stratum, program )[1]
+        perf = _test_agent( refm_call, agent_call, rflip, episode_length, disc_rate,
+                            stratum, program, config )[1]
         if not isnan(perf):
             result[i] = perf
             if i%10 == 0 and i > 10:
                 mean = result[:i].mean()
                 half_ci = 1.96*result[:i].std(ddof=1)/sqrt(i)
-                print "         %6i  % 5.1f +/- % 5.1f " % ( i, mean, half_ci )
+                print("         %6i  % 5.1f +/- % 5.1f " % (i, mean, half_ci))
             i += 1
             if i >= sample_size: break
 
@@ -234,7 +241,7 @@ def simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, \
 # N total number of samples taken in each step (i.e. across all strata)
 # p probability of being in a stratum
 def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samples, \
-                          sample_size, dist, threads ):
+                          sample_size, dist, threads, config ):
 
     p = dist         # get probability of being in each stratum
     I = len(dist)    # number of strata, including passive
@@ -249,16 +256,16 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
          1250*A, 1500*A, 1750*A, 2000*A, 2500*A, 3000*A, 3500*A, 4000*A, 5000*A]
 
     # trim to number of program samples, or requested sample size, which ever is smaller
-    max_samples = min( len(sample_data), sample_size )
+    max_samples = min( len(config["sample_data"]), sample_size )
     for i in range(len(N)):
         if N[i]+A >= max_samples:
             N[i] = float(max_samples)
             N = N[:i+1]
             break
-        
-    print "Sample size steps:"
-    print N
-    
+
+    print("Sample size steps:")
+    print(N)
+
     K = len(N)                 # number of adaptive stratification stages
     Y = [[] for i in range(I)] # empty collection of samples divided up by stratum
     Y[0] = [0]
@@ -267,8 +274,7 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
     est = zeros((K))           # estimated confidence intervals
 
     for k in range( 1, K ):
-        print
-
+        print()
         # compute the allocations with "method a" from the paper,
         # deducting 2A from the target which is added afterward to ensure
         # all strata get at least 2 samples
@@ -296,14 +302,14 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
 
         # add samples to processing pool (we skip stratum 0 which is passive)
         for i in range(1,I):
-            for j in range(int(M[i])/2): # /2 is due to sampling each program twice
+            for j in range(int(M[i])//2): # /2 is due to sampling each program twice
 
                 if len(samples[i]) == 0:
-                    print "Error: Run out of program samples in stratum: " + str(i)
+                    print("Error: Run out of program samples in stratum: " + str(i))
                     sys.exit()
 
                 program = samples[i].pop(0)
-                args = (refm_call, agent_call, episode_length, disc_rate, i, program)
+                args = (refm_call, agent_call, episode_length, disc_rate, i, program, config )
                 result = pool.apply_async( test_agent, args )
                 results.append( result )
 
@@ -323,12 +329,12 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
                     # run failed so get a new sample and add to processing pool
                     #print "Adding extra sample to the pool due to run failure"
                     if len(samples[stratum]) == 0:
-                        print "Error: Run out of program samples in stratum: " \
-                              + str(stratum)
+                        print("Error: Run out of program samples in stratum: "
+                              + str(stratum))
                         sys.exit()
 
                     program = samples[stratum].pop(0)
-                    args = (refm_call, agent_call, episode_length, disc_rate, stratum, program)
+                    args = (refm_call, agent_call, episode_length, disc_rate, stratum, program, config)
                     result = pool.apply_async( test_agent, args )
                     results.append( result )
                 else:
@@ -361,20 +367,20 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
 
         # report current estimates by strata
         for i in range(1,I):
-            print " % 3d % 4d % 5d" % (i, int(M[i]), n[k][i] ),
+            print(" % 3d % 4d % 5d" % (i, int(M[i]), n[k][i]), end=' ')
 
             if n[k][i] == 0: 
                 # no samples, so skip mean and half CI
-                print
-            elif n[k][i] < 4: 
+                print()
+            elif n[k][i] < 4:
                 # don't report half CI with less than 4 program samples
-                print " % 6.1f" % (array(Y[i]).mean() )
+                print(" % 6.1f" % (array(Y[i]).mean()))
             else:
                 # do a full report
                 # statistical samples is twice program samples due to antithetic vars
-                print " % 6.1f +/- % 5.1f" \
-                   % (array(Y[i]).mean(), 1.96*s[k,i]/sqrt(n[k][i]) )
-                    
+                print(" % 6.1f +/- % 5.1f"
+                      % (array(Y[i]).mean(), 1.96 * s[k, i] / sqrt(n[k][i])))
+
         # compute the current estimate and 95% confidence interval
         for i in range(1,I):
             if p[i] > 0.0:
@@ -384,8 +390,8 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
         
         # wait until after 3rd stage due to unreliable early statistics
         if k >= min(3,K-1):
-            print "\n         %6i   % 5.1f +/- % 5.1f " % (N[k], est[k-1], delta )
-        
+            print("\n         %6i   % 5.1f +/- % 5.1f " % (N[k], est[k - 1], delta))
+
     return
 
 
@@ -400,7 +406,7 @@ def load_samples( refm, cluster_node, simple_mc ):
     program_sample_filename = "./refmachines/samples/" + str(refm) \
                               + cluster_node + ".samples"
 
-    print "Loading program samples: " + program_sample_filename
+    print("Loading program samples: " + program_sample_filename)
 
     file = open( program_sample_filename )
 
@@ -423,25 +429,24 @@ def load_samples( refm, cluster_node, simple_mc ):
         samples[ stratum ].append( program )
         dist[ stratum ] += 1.0/num_samples
 
-    print "Number of program samples:" + str(num_samples)
+    print("Number of program samples:" + str(num_samples))
     if not simple_mc:
-        print "Number of strata:        " + str(num_strata)
-        print "Strata distribution:"
-        print str(dist[1:])
-    print
-
+        print("Number of strata:        " + str(num_strata))
+        print("Strata distribution:")
+        print(str(dist[1:]))
+    print()
     return samples, dist
 
 
 # print basic usage
 def usage():
-    print "python AIQ -r reference_machine[,param1[,param2[...]]] " \
-        + "-a agent[,param1[,agent_param2[...]]] " \
-        + "-d discount_rate [-s sample_size] [-l episode_length] " \
-        + "[-n cluster_node] [-t threads] [--log] [--save_samples] " \
-        + "[--verbose_log_el] [--simple_mc]" \
-        + "[--multi_round_el=method[,param1[,param2[...]]]" \
-        + "[--debug_mrel]" \
+    print ("python AIQ -r reference_machine[,param1[,param2[...]]] "
+        + "-a agent[,param1[,agent_param2[...]]] "
+        + "-d discount_rate [-s sample_size] [-l episode_length] "
+        + "[-n cluster_node] [-t threads] [--log] [--save_samples] "
+        + "[--verbose_log_el] [--simple_mc]"
+        + "[--multi_round_el=method[,param1[,param2[...]]]"
+        + "[--debug_mrel]")
 
 
 # main function that just sets things up and then calls the sampler
@@ -466,17 +471,16 @@ def main():
     global multi_rounding_el, mrel_method, mrel_params, mrel_rewards
     global debuging_mrel, mrel_debug_file
 
-    print
-    print "AIQ version 1.0"
-    print
-
+    print()
+    print("AIQ version 1.0")
+    print()
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
-                                   ["multi_round_el=", "help", "log", "simple_mc", 
+                                   ["multi_round_el=", "help", "log", "simple_mc",
                                     "save_samples", "verbose_log_el", "debug_mrel"])
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         usage()
         sys.exit(2)
 
@@ -528,7 +532,7 @@ def main():
 
         elif opt == "--debug_mrel":     debuging_mrel = True
         else:
-            print "Unrecognised option"
+            print("Unrecognised option")
             usage()
             sys.exit()
 
@@ -595,8 +599,8 @@ def main():
     proportion_of_total = 0.95
     if episode_length == None:
         if disc_rate == 1.0:
-            print "With a discount rate of 1.0 you must set the episode length."
-            print
+            print("With a discount rate of 1.0 you must set the episode length.")
+            print()
             usage()
             sys.exit()
         else:
@@ -618,26 +622,24 @@ def main():
     agent = eval( agent_call )
 
     # report settings
-    print "Reference machine:       " + str(refm)
-    print "RL Agent:                " + str(agent)
-    print "Discount rate:           " + str(disc_rate)
-    print "Episode length:          " + str(episode_length),
+    print("Reference machine:       " + str(refm))
+    print("RL Agent:                " + str(agent))
+    print("Discount rate:           " + str(disc_rate))
+    print("Episode length:          " + str(episode_length), end=' ')
     if disc_rate != 1.0:
-        print " which covers %3.1f%% of the infinite geometric total" \
-              % (100.0*proportion_of_total)
+        print(" which covers %3.1f%% of the infinite geometric total"
+              % (100.0 * proportion_of_total))
     else:
-        print
-
+        print()
     if agent == "Manual()" and not simple_mc:
-        print "Error: Manaual agent only works with simple_mc sampling"
+        print("Error: Manual agent only works with simple_mc sampling")
         sys.exit()
 
     if disc_rate != 1.0 and proportion_of_total < 0.75:
-        print
-        print "WARNING: The episode length is too short for this discout rate!"
-        print
-
-    print "Sample size:             " + str(sample_size)
+        print()
+        print("WARNING: The episode length is too short for this discount rate!")
+        print()
+    print("Sample size:             " + str(sample_size))
 
     # load in program samples
     samples, dist = load_samples( refm, cluster_node, simple_mc )
@@ -648,11 +650,13 @@ def main():
     # The following is a crude check as we can still run out of samples in a
     # stratum depending on how the adaptive stratification decides to sample.
     if sample_size > 2.0 * len(sample_data):
-        print
-        print "Error: More samples have been requested than are available in " \
-              "the program sample file! (including fact that they are sampled twice)"
+        print()
+        print("Error: More samples have been requested than are available in "
+              "the program sample file! (including fact that they are sampled twice)")
         sys.exit()
 
+    # Assignment for dictionary even if not used
+    log_file_name = ''
     # report logging
     if logging:
         log_file_name = "./log/" + str(refm) + "_" + str(disc_rate) + "_" \
@@ -663,15 +667,19 @@ def main():
             log_file.write( str(dist[i]) + " " )
         log_file.write("\n")
         log_file.flush()
-        print "Logging to file:         " + log_file_name
+        log_file.close()
+        print("Logging to file:         " + log_file_name)
 
+    # Assignment for dictionary even if not used
+    adaptive_sample_file_name = ''
     # set up file to save used adaptive samples
     if sampling:
         adaptive_sample_file_name = "./adaptive-samples/" + str(refm) + "_" + str(disc_rate) + "_" \
                         + str(episode_length) + "_" + str(agent) + cluster_node \
                         + strftime("_%Y_%m%d_%H_%M_%S",localtime()) + ".samples"
-        adaptive_sample_file = open( adaptive_sample_file_name, 'w' )
-        print "Saving used adaptive samples to file: " + adaptive_sample_file_name
+        # adaptive_sample_file = open( adaptive_sample_file_name, 'w' )
+        print("Saving used adaptive samples to file: " + adaptive_sample_file_name)
+
 
     # set up files to log results at intermediate ELs
     if logging_el:
@@ -681,7 +689,7 @@ def main():
                             + strftime("_%Y_%m%d_%H_%M_%S",localtime())
             if not os.path.exists( "./log-el/" + log_el_dir_name ):
                 os.makedirs( "./log-el/" + log_el_dir_name )
-            for i in range( 1, episode_length / intermediate_length + 1 ):
+            for i in range( 1, episode_length // intermediate_length + 1 ):
                 log_el_file_name = "./log-el/" + log_el_dir_name + "/" + str(refm) + "_" \
                         + str(disc_rate) + "_" + str(i * intermediate_length) + "_" + str(agent) + cluster_node \
                         + strftime("_%Y_%m%d_%H_%M_%S",localtime()) + ".log"
@@ -690,15 +698,18 @@ def main():
                     log_el_file.write( str(dist[j]) + " " )
                 log_el_file.write("\n")
                 log_el_file.flush()
-                log_el_files.append( log_el_file )
-            print "Verbose logging at intermediate ELs to directory: ./log-el/" + log_el_dir_name
+                log_el_file.close()
+                log_el_files.append( log_el_file_name )
+            print("Verbose logging at intermediate ELs to directory: ./log-el/" + log_el_dir_name)
         else:
-            print "Warning: Episode Length " + str(episode_length) + " is less than Intermediate Episode Length " \
-                    + str(intermediate_length) + "! Verbose logging at Intermediate Episode Lengths will be disabled."
+            print("Warning: Episode Length " + str(episode_length) + " is less than Intermediate Episode Length "
+                  + str(intermediate_length) + "! Verbose logging at Intermediate Episode Lengths will be disabled.")
             logging_el = False
             if multi_rounding_el:
                 raise NameError("multi-round EL convergence possible only with verbose EL logging")
 
+    # Assignment for dictionary even if not used
+    mrel_debug_file_name = ''
     # set up file to save multi-round EL convergence debug informations
     if debuging_mrel:
         mrel_debug_file_name = "./debug/" + str(refm) + "_" + str(disc_rate) + "_" \
@@ -714,33 +725,52 @@ def main():
             mrel_debug_file.write("#   delta=" + str(mrel_delta_diff) + "\n")
             mrel_debug_file.write("#   EL=" + str(mrel_delta_el) + "\n")
         mrel_debug_file.flush()
-        print "MREL debug logging to file:         " + mrel_debug_file_name
+        mrel_debug_file.close()
+        print("MREL debug logging to file:         " + mrel_debug_file_name)
+
+    config = {
+        "logging": logging,
+        "log_file_name": log_file_name,
+        "sampling": sampling,
+        "sample_data": sample_data,
+        "adaptive_sample_file": adaptive_sample_file_name,
+        "logging_el": logging_el,
+        "log_el_files": log_el_files,
+        "intermediate_length": intermediate_length,
+        "multi_rounding_el": multi_rounding_el,
+        "mrel_method": mrel_method,
+        "mrel_params": mrel_params,
+        "mrel_rewards": mrel_rewards,
+        "debuging_mrel": debuging_mrel,
+        "mrel_debug_file": mrel_debug_file_name
+    }
 
     # run an estimation algorithm
     if simple_mc:
-        simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, sample_size )
+        simple_mc_estimator( refm_call, agent_call, episode_length, disc_rate, sample_size, config)
     else:
         # Kill agent and pass in its constructor call, this is because on Windows
         # some agents have trouble serialising which messes up the multiprocessing
         # library that Python uses.  Easier just to construct the agent inside the
         # method that gets called in parallel.
-        agent = None 
+        agent = None
+
         stratified_estimator( refm_call, agent_call, episode_length, disc_rate,
-                              samples, sample_size, dist, threads )
+                              samples, sample_size, dist, threads, config)
 
     # close log file
-    if logging: log_file.close()
+    # if logging: log_file.close()
 
     # close adaptive samples file
-    if sampling: adaptive_sample_file.close()
+    # if sampling: adaptive_sample_file.close()
 
     # close log-el files
-    if logging_el:
-        for i in range( episode_length / intermediate_length ):
-            log_el_files.pop().close()
+    # if logging_el:
+    #     for i in range( episode_length // intermediate_length ):
+    #         config["log_el_files"].pop().close()
     
     # close mrel debug file
-    if debuging_mrel: mrel_debug_file.close()
+    # if debuging_mrel: mrel_debug_file.close()
 
 if __name__ == "__main__":
     main()

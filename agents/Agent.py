@@ -8,8 +8,8 @@
 # Released under GNU GPLv3
 #
 
-from scipy import zeros
-from scipy import exp
+from numpy import zeros
+from numpy import exp
 from random import randrange
 from random import random
 
@@ -89,12 +89,12 @@ class Agent:
 
         # find max and min values, do this manually to avoid python call
         for i in range(q_values.size):
-            rescaled_v[i] = q_values[i]/epsilon;
+            rescaled_v[i] = q_values[i]/epsilon
             if rescaled_v[i] > max_val: max_val = rescaled_v[i]
             if rescaled_v[i] < min_val: min_val = rescaled_v[i]
 
         if max_val > 1e8:
-            print "warning: max_val exceeds 1e8 : ", max_val
+            print("warning: max_val exceeds 1e8 : ", max_val)
 
         # rescale and clip if needed
         if min_val < -595.0 or max_val > 595.0:

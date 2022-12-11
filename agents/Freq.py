@@ -6,7 +6,7 @@
 # Released under GNU GPLv3
 #
 
-from Agent import Agent
+from .Agent import Agent
 
 from numpy import zeros
 from numpy import ones
