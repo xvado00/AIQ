@@ -471,6 +471,7 @@ mrel_params = []
 mrel_rewards = []
 debuging_mrel = False
 mrel_debug_file = None
+logging_agent_failures = False
 
 def main():
 
@@ -478,6 +479,7 @@ def main():
     global logging_el, log_el_files, intermediate_length
     global multi_rounding_el, mrel_method, mrel_params, mrel_rewards
     global debuging_mrel, mrel_debug_file
+    global logging_agent_failures
 
     print()
     print("AIQ version 1.0")
@@ -486,7 +488,8 @@ def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
                                    ["multi_round_el=", "help", "log", "simple_mc",
-                                    "save_samples", "verbose_log_el", "debug_mrel"])
+                                    "save_samples", "verbose_log_el", "debug_mrel",
+                                    "log_agent_failures"])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -539,6 +542,7 @@ def main():
                 mrel_params.append( float(a) )
 
         elif opt == "--debug_mrel":     debuging_mrel = True
+        elif opt == "--log_agent_failures": logging_agent_failures = True
         else:
             print("Unrecognised option")
             usage()
@@ -750,7 +754,8 @@ def main():
         "mrel_params": mrel_params,
         "mrel_rewards": mrel_rewards,
         "debuging_mrel": debuging_mrel,
-        "mrel_debug_file": mrel_debug_file_name
+        "mrel_debug_file": mrel_debug_file_name,
+        "logging_agent_failures": logging_agent_failures
     }
 
     # run an estimation algorithm
