@@ -21,6 +21,7 @@ class Agent:
         self.num_actions = refm.getNumActions()
         self.sel_mode    = 0
         self.disc_rate   = disc_rate
+        self.failed      = False
 
     def __str__( self ):
         raise NameError("You need to override Agent.__str__")
@@ -34,6 +35,9 @@ class Agent:
     def perceive( self, new_obs, reward ):
         raise NameError("You need to override Agent.perceive!")
 
+    # Report whether some kind of failure occured
+    def has_failed( self ):
+        return self.failed
 
     # return the index of the highest q_value, choosing one
     # of them at random if multiple optimal values exist
