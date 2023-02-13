@@ -32,7 +32,14 @@ def estimate( file, detailed ):
     # read in log file results
     num_samples = 0
     for result in file:
-        stamp, stratum, perf1, perf2 = result.split()
+        split_result = result.split()
+        #stamp = split_result[0]
+        stratum = split_result[1]
+        perf1 = split_result[2]
+        perf2 = split_result[3]
+        #fail1 = split_result[4]
+        #fail2 = split_result[5]
+        #program = split_result[6]
         z = int(stratum)
         if True: #z > 10:
             Y[int(stratum)].append( (float(perf1),float(perf2)) )
