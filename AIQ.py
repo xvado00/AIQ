@@ -24,16 +24,22 @@ import getopt, sys, os
 def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program, config ):
 
     # run twice with flipped reward second time
-    s1, r1, ir1 = _test_agent(refm_call, a_call,  1.0, episode_length,
+    s1, r1, ir1, f1 = _test_agent(refm_call, a_call,  1.0, episode_length,
                          disc_rate, stratum, program, config)
-    s2, r2, ir2 = _test_agent(refm_call, a_call, -1.0, episode_length,
+    s2, r2, ir2, f2 = _test_agent(refm_call, a_call, -1.0, episode_length,
                          disc_rate, stratum, program, config)
 
     # log successful result to file
     if config["logging"] and not isnan(r1) and not isnan(r2):
         log_file = open( config["log_file_name"], 'a' )
-        log_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
-              + str(s1) + " " + str(r1) + " " + str(r2) + "\n" )
+        # optionally log also if agent failed and on what program
+        if config["logging_agent_failures"]:
+            log_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
+                  + str(s1) + " " + str(r1) + " " + str(r2) \
+                  + " " + str(f1) + " " + str(f2) + " " + program + "\n" )
+        else:
+            log_file.write( strftime("%Y_%m%d_%H:%M:%S ",localtime()) \
+                  + str(s1) + " " + str(r1) + " " + str(r2) + "\n" )
         log_file.flush()
         log_file.close()
 
@@ -81,6 +87,8 @@ def _test_agent( refm_call, agent_call, rflip, episode_length,
     estimated_ioc = 0
     convergence_logged = False
 
+    agent_failure = '-'
+
     for i in range(1, episode_length + 1 ):
         # test only if not sufficiently converged
         # or if no mrel optimalization used
@@ -90,7 +98,7 @@ def _test_agent( refm_call, agent_call, rflip, episode_length,
 
             # we signal failure with a NaN so as not to upset
             # the parallel map running this with an exception
-            if steps == refm.max_steps: return (stratum,float('nan'),disc_rewards)
+            if steps == refm.max_steps: return (stratum,float('nan'),disc_rewards,agent_failure)
 
             disc_reward += discount*rflip*reward
             discount    *= disc_rate
@@ -113,6 +121,10 @@ def _test_agent( refm_call, agent_call, rflip, episode_length,
     # normalise and possibly discount reward
     disc_reward = normalise_reward( episode_length, disc_rate, disc_reward )
 
+    # get information about agent failures
+    if config["logging_agent_failures"]:
+        agent_failure = agent.has_failed()
+
     # save debug information
     if config["debuging_mrel"]:
         if mrel_stop:
@@ -130,7 +142,7 @@ def _test_agent( refm_call, agent_call, rflip, episode_length,
     agent = None
     refm  = None
     
-    return stratum, disc_reward, disc_rewards
+    return stratum, disc_reward, disc_rewards, agent_failure
 
 
 # Normalise and possibly discount reward
