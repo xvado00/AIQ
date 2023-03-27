@@ -160,6 +160,8 @@ Agent.py  Base class for agents
 
 Random.py Agent that takes random actions
 
+Constant.py Agent that returns given constant action regardless of state.
+
 Freq.py  Slightly smarter agent that looks at reward associated with actions.
 
 Q_l.py  Q learning with eligibility traces.
