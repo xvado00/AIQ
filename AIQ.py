@@ -361,6 +361,14 @@ def stratified_estimator( refm_call, agent_call, episode_length, disc_rate, samp
                 covariance = cov( sample1, sample2 )[0,1] # default is 1 df
 
                 var = 0.25 * ( s1*s1 + s2*s2 + 2.0 * covariance )
+
+                # Covariance can be negative 0 -> sqrt from negative -> NaN
+                #   Cov in general can be negative, but it didn't happen in testing
+                #   Wrong calculation of cov results in it being not quite zero instead of zero
+                #   Will fix when the problem occurs
+                if abs(var) <= 1e-10:
+                    var = 0.0
+
                 s[k,i] = sqrt( var )
             else:
                 s[k,i] = 1.0
