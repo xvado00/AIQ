@@ -22,7 +22,7 @@ from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
 
 
 # Test an agent by performing both positive and negative reward runs in order
-# to get antithetic variance reduction. 
+# to get antithetic variance reduction.
 def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, config):
     # run twice with flipped reward second time
     s1, r1, ir1, f1 = _test_agent(refm_call, a_call, 1.0, episode_length,
@@ -270,7 +270,7 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
     print(N)
 
     K = len(N)  # number of adaptive stratification stages
-    Y = [[] for i in range(I)]  # empty collection of samples divided up by stratum
+    Y = [[] for _ in range(I)]  # empty collection of samples divided up by stratum
     Y[0] = [0]
     s = ones((K, I))  # estimated standard deviations for each stage & strata
     n = zeros((K, I))  # for each step the size of each stratum
@@ -304,6 +304,7 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         results = []
 
         # add samples to processing pool (we skip stratum 0 which is passive)
+        # We choose number of  programs here according to M[i]
         for i in range(1, I):
             for j in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
 
@@ -401,8 +402,6 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         # wait until after 3rd stage due to unreliable early statistics
         if k >= min(3, K - 1):
             print("\n         %6i   % 5.1f +/- % 5.1f " % (N[k], est[k - 1], delta))
-
-    return
 
 
 # load the pre-sampled programs
@@ -628,10 +627,12 @@ def main():
     else:
         proportion_of_total = 1.0 - disc_rate ** episode_length
 
-    # construct refrence machine
+    # construct reference machine
     refm_call = refm_str + "." + refm_str + "( "
-    if len(refm_params) > 0: refm_call += str(refm_params.pop(0))
-    for param in refm_params: refm_call += ", " + str(param)
+    if len(refm_params) > 0:
+        refm_call += str(refm_params.pop(0))
+    for param in refm_params:
+        refm_call += ", " + str(param)
     refm_call += " )"
     refm = eval(refm_call)
 
