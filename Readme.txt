@@ -110,10 +110,14 @@ Arguments:
   Useful for sanity checks and also debugging as it doesn't do any
   async stuff etc.
 
+--continue_from_log <path_to_log_file> Lets load results from log to continue your testing from last complete stage
 
 An example run of AIQ would be:
 
 python AIQ.py -r BF -a Q_l,0.0,0.5,0.5,0.05,0.9  -l 1000 -s 1000
+
+Starting from previous log:
+python3 AIQ.py -r BF -a Random -l 1000 -s 1000 --continue_from_log /path/to/log_file
 
 which is a BF reference machine with a 5 symbol tape (this is the
 default, you can specify other values), an episode length of 1000

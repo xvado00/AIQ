@@ -7,9 +7,10 @@
 # Copyright Shane Legg 2011
 # Released under the GNU GPLv3
 #
+
 from refmachines import *
 from agents import *
-
+import AIQ_continue_from_log as log_loader
 import getopt
 import os
 import sys
@@ -243,7 +244,7 @@ def simple_mc_estimator(refm_call, agent_call, episode_length, disc_rate,
 #
 # N total number of samples taken in each step (i.e. across all strata)
 # p probability of being in a stratum
-def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, samples, \
+def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, samples,
                          sample_size, dist, threads, config):
     p = dist  # get probability of being in each stratum
     I = len(dist)  # number of strata, including passive
@@ -275,6 +276,13 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
     n = zeros((K, I))  # for each step the size of each stratum
     est = zeros((K))  # estimated confidence intervals
 
+    log_results = None
+    # Load checkpoint data only if the file exists
+    continue_from_log_path = config.get("continue_from_log_path")
+    if continue_from_log_path is not None and os.path.isfile(continue_from_log_path):
+        print(f"Loaded log results from {continue_from_log_path}")
+        _, log_results = log_loader.load_log_file(continue_from_log_path)
+
     for k in range(1, K):
         print()
         # compute the allocations with "method a" from the paper,
@@ -295,57 +303,13 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         # make sure each non-zero probability stratum gets sampled at least twice
         M = x + 2.0 * ceil(p)
 
-        # create parallel computation pool
-        if threads == 0:
-            pool = Pool()  # default threads = core count
+        if continue_from_log_path is not None and len(log_results) > 0:
+            is_stage_complete = read_from_log(I, K, M, Y, k, log_results, config)
+
+            if not is_stage_complete:
+                run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call, samples, threads)
         else:
-            pool = Pool(threads)
-        results = []
-
-        # add samples to processing pool (we skip stratum 0 which is passive)
-        # We choose number of  programs here according to M[i]
-        for i in range(1, I):
-            for j in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
-
-                if len(samples[i]) == 0:
-                    print("Error: Run out of program samples in stratum: " + str(i))
-                    sys.exit()
-
-                program = samples[i].pop(0)
-                args = (refm_call, agent_call, episode_length, disc_rate, i, program, config)
-                result = pool.apply_async(test_agent, args)
-                results.append(result)
-
-        # collect the results, adding new jobs to the pool for any failed runs
-        while results != []:
-            result = results.pop(0)
-
-            if not result.ready():
-                # put back in the results list at the end and sleep for a moment
-                results.append(result)
-                sleep(0.02)
-            else:
-                # completed, now get the results
-                stratum, perf1, perf2 = result.get(100)
-
-                if isnan(perf1) or isnan(perf2):
-                    # run failed so get a new sample and add to processing pool
-                    # print "Adding extra sample to the pool due to run failure"
-                    if len(samples[stratum]) == 0:
-                        print("Error: Run out of program samples in stratum: "
-                              + str(stratum))
-                        sys.exit()
-
-                    program = samples[stratum].pop(0)
-                    args = (refm_call, agent_call, episode_length, disc_rate, stratum, program, config)
-                    result = pool.apply_async(test_agent, args)
-                    results.append(result)
-                else:
-                    # run succeeded, so add the result to our results table Y
-                    Y[stratum].append((perf1, perf2))
-
-        pool.close()
-        pool.join()
+            run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call, samples, threads)
 
         # compute new total program sample counts for each strata
         n[k] = n[k - 1] + M
@@ -401,6 +365,104 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         # wait until after 3rd stage due to unreliable early statistics
         if k >= min(3, K - 1):
             print("\n         %6i   % 5.1f +/- % 5.1f " % (N[k], est[k - 1], delta))
+
+
+def read_from_log(I, K, M, Y, k, log_results: list[log_loader.LogResult], config: dict) -> bool:
+    """
+    Reads records in log_results and fills Y with fresh results.
+
+    :param I: number of strata, including passive
+    :param K: Max stage number
+    :param M:
+    :param Y: collection of results divided up by stratum
+    :param k: stage number
+    :param log_results:
+    :param config:
+    :return: True, if we had enough data to complete the stage
+    """
+
+    results = []
+    # Load from log
+    # add samples to processing pool (we skip stratum 0 which is passive)
+    # We choose number of  programs here according to M[i]
+    for i in range(1, I):
+        for j in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
+
+            try:
+                results.append(log_results.pop(0))
+            except IndexError as _:
+                # We run out of data -> return correct results that we got from previous stages
+                print(f"Loading of log DONE")
+                print(f"Log for stratum {k} is incomplete")
+                print(f"Starting agent on stage {k}/{K - 1}")
+                return False
+    # collect the results, adding new jobs to the pool for any failed runs
+    while results != []:
+        result = results.pop(0)
+
+        # Write the results to new log file
+        with open(config["log_file_name"], 'a') as log_file:
+            if config["logging_agent_failures"]:
+                log_file.write(f"{result.time} {result.stratum_number} {result.reward_1} {result.reward_2} "
+                               f"{result.fail1} {result.fail2} {result.program}\n")
+            else:
+                log_file.write(f"{result.time} {result.stratum_number} {result.reward_1} {result.reward_2}\n")
+
+        # Run succeeded, so add the result to our results table Y
+        Y[result.stratum_number].append((result.reward_1, result.reward_2))
+    return True
+
+
+def run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call, samples, threads):
+    results = []
+    # Run normally
+    # create parallel computation pool
+    if threads == 0:
+        pool = Pool()  # default threads = core count
+    else:
+        pool = Pool(threads)
+    # add samples to processing pool (we skip stratum 0 which is passive)
+    # We choose number of  programs here according to M[i]
+    for i in range(1, I):
+        for j in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
+
+            if len(samples[i]) == 0:
+                print("Error: Run out of program samples in stratum: " + str(i))
+                sys.exit()
+
+            program = samples[i].pop(0)
+            args = (refm_call, agent_call, episode_length, disc_rate, i, program, config)
+            result = pool.apply_async(test_agent, args)
+            results.append(result)
+    # collect the results, adding new jobs to the pool for any failed runs
+    while results != []:
+        result = results.pop(0)
+
+        if not result.ready():
+            # put back in the results list at the end and sleep for a moment
+            results.append(result)
+            sleep(0.02)
+        else:
+            # completed, now get the results
+            stratum, perf1, perf2 = result.get(100)
+
+            if isnan(perf1) or isnan(perf2):
+                # run failed so get a new sample and add to processing pool
+                # print "Adding extra sample to the pool due to run failure"
+                if len(samples[stratum]) == 0:
+                    print("Error: Run out of program samples in stratum: "
+                          + str(stratum))
+                    sys.exit()
+
+                program = samples[stratum].pop(0)
+                args = (refm_call, agent_call, episode_length, disc_rate, stratum, program, config)
+                result = pool.apply_async(test_agent, args)
+                results.append(result)
+            else:
+                # run succeeded, so add the result to our results table Y
+                Y[stratum].append((perf1, perf2))
+    pool.close()
+    pool.join()
 
 
 # load the pre-sampled programs
@@ -486,7 +548,7 @@ def main():
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
                                    ["multi_round_el=", "help", "log", "simple_mc",
                                     "verbose_log_el", "debug_mrel",
-                                    "log_agent_failures"])
+                                    "log_agent_failures", "continue_from_log="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -502,9 +564,11 @@ def main():
     agent_params = []
     refm_params = []
     threads = 0
+    continue_from_log_path = None
 
     # exit on no arguments
     if opts == []:
+        print("No arguments were given")
         usage()
         sys.exit()
 
@@ -549,6 +613,8 @@ def main():
             debuging_mrel = True
         elif opt == "--log_agent_failures":
             logging_agent_failures = True
+        elif opt == "--continue_from_log":
+            continue_from_log_path = arg
         else:
             print("Unrecognised option")
             usage()
@@ -752,7 +818,8 @@ def main():
         "mrel_rewards": mrel_rewards,
         "debuging_mrel": debuging_mrel,
         "mrel_debug_file": mrel_debug_file_name,
-        "logging_agent_failures": logging_agent_failures
+        "logging_agent_failures": logging_agent_failures,
+        "continue_from_log_path": continue_from_log_path
     }
 
     # run an estimation algorithm
