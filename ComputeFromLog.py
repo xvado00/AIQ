@@ -12,61 +12,57 @@ import getopt, sys
 from os.path import basename
 
 
-
-def estimate( file, detailed ):
-
+def estimate(file, detailed):
     # load in the strata distribution
     dist_line = ["0.0"]
     dist_line += file.readline().split()
-    dist = array( dist_line, float )
+    dist = array(dist_line, float)
 
-    p = dist      # probabilyt of a program being in each strata
-    I = len(dist) # number of strata, including passive
-    A = I-1       # active strata
+    p = dist  # probabilyt of a program being in each strata
+    I = len(dist)  # number of strata, including passive
+    A = I - 1  # active strata
 
-
-    Y = [[] for i in range(I)] # empty collection of samples divided up by stratum
+    Y = [[] for i in range(I)]  # empty collection of samples divided up by stratum
     Y[0] = [0]
-    s = ones((I))            # estimated standard deviations for each stage & strata
+    s = ones((I))  # estimated standard deviations for each stage & strata
 
     # read in log file results
     num_samples = 0
     for result in file:
         split_result = result.split()
-        #stamp = split_result[0]
+        # stamp = split_result[0]
         stratum = split_result[1]
         perf1 = split_result[2]
         perf2 = split_result[3]
-        #fail1 = split_result[4]
-        #fail2 = split_result[5]
-        #program = split_result[6]
+        # fail1 = split_result[4]
+        # fail2 = split_result[5]
+        # program = split_result[6]
         z = int(stratum)
-        if True: #z > 10:
-            Y[int(stratum)].append( (float(perf1),float(perf2)) )
+        if True:  # z > 10:
+            Y[int(stratum)].append((float(perf1), float(perf2)))
             num_samples += 2
 
     # compute empirical standard deviations for each stratum
-    for i in range(1,I):
+    for i in range(1, I):
         if p[i] > 0.0 and len(Y[i]) > 2:
 
             YA = array(Y[i])
-            sample1 = YA[:,0] # positive antithetic runs
-            sample2 = YA[:,1] # negative antithetic runs
+            sample1 = YA[:, 0]  # positive antithetic runs
+            sample2 = YA[:, 1]  # negative antithetic runs
 
-            s1 = sample1.std(ddof=1) # 1 degree of freedom
-            s2 = sample2.std(ddof=1) # 1 degree of freedom
-            covariance = cov( sample1, sample2 )[0,1] # default is 1 df
+            s1 = sample1.std(ddof=1)  # 1 degree of freedom
+            s2 = sample2.std(ddof=1)  # 1 degree of freedom
+            covariance = cov(sample1, sample2)[0, 1]  # default is 1 df
 
-            var = 0.25 * ( s1*s1 + s2*s2 + 2.0 * covariance )
-            s[i] = sqrt( var )
+            var = 0.25 * (s1 * s1 + s2 * s2 + 2.0 * covariance)
+            s[i] = sqrt(var)
         else:
             s[i] = 1.0
 
-
     # report current estimates by strata
     if detailed:
-        for i in range(1,I):
-            stratum_samples = len(Y[i])*2.0
+        for i in range(1, I):
+            stratum_samples = len(Y[i]) * 2.0
             print(" % 3d % 5d" % (i, stratum_samples), end=' ')
 
             if stratum_samples == 0:
@@ -83,12 +79,12 @@ def estimate( file, detailed ):
         print()
     # compute the current estimate and 95% confidence interval
     est = 0.0
-    for i in range(1,I):
-        stratum_samples = len(Y[i])*2.0
+    for i in range(1, I):
+        stratum_samples = len(Y[i]) * 2.0
         if p[i] > 0.0 and stratum_samples > 2:
-            est += p[i]/stratum_samples * array(Y[i]).sum()
+            est += p[i] / stratum_samples * array(Y[i]).sum()
 
-    ssd = sum(p*s)
+    ssd = sum(p * s)
     delta = 1.96 * ssd / sqrt(num_samples)
 
     print(f"{num_samples:6d}  {est: 5.1f} +/- {delta: 5.1f} SD {ssd: 5.1f}", end=' ')
@@ -102,11 +98,11 @@ def usage():
 
 
 # main function that just sets things up and then calls the sampler
-logging  = False
+logging = False
 log_file = None
 
-def main():
 
+def main():
     global logging, log_file
 
     detailed = False
@@ -129,14 +125,13 @@ def main():
         sys.exit()
 
     for file_name in sys.argv:
-        file = open( file_name, 'r')
-        estimate( file, detailed )
+        file = open(file_name, 'r')
+        estimate(file, detailed)
         print(":" + basename(file_name))
         if detailed: print()
         file.close()
-    
 
-    
+
 if __name__ == "__main__":
     main()
 
