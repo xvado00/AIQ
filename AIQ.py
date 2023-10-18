@@ -54,13 +54,6 @@ def test_agent( refm_call, a_call, episode_length, disc_rate, stratum, program, 
             log_el_file.close()
             log_el_files.append( log_el_file_name )
 
-    # save successfully used program to adaptive samples file
-    if config["sampling"] and not isnan(r1) and not isnan(r2):
-        adaptive_sample_file = open(config["adaptive_sample_file"], 'a')
-        adaptive_sample_file.write( str(stratum) + " " + program + "\n" )
-        adaptive_sample_file.flush()
-        adaptive_sample_file.close()
-
     return (s1,r1,r2)
 
 
@@ -463,7 +456,7 @@ def usage():
     print ("python AIQ -r reference_machine[,param1[,param2[...]]] "
         + "-a agent[,param1[,agent_param2[...]]] "
         + "-d discount_rate [-s sample_size] [-l episode_length] "
-        + "[-n cluster_node] [-t threads] [--log] [--save_samples] "
+        + "[-n cluster_node] [-t threads] [--log] [--log_agent_failures] "
         + "[--verbose_log_el] [--simple_mc]"
         + "[--multi_round_el=method[,param1[,param2[...]]]"
         + "[--debug_mrel]")
@@ -472,8 +465,6 @@ def usage():
 # main function that just sets things up and then calls the sampler
 logging  = False
 log_file = None
-sampling = False
-adaptive_sample_file = None
 logging_el = False
 log_el_files = []
 intermediate_length = 1000
@@ -487,7 +478,7 @@ logging_agent_failures = False
 
 def main():
 
-    global logging, log_file, sampling, adaptive_sample_file
+    global logging, log_file
     global logging_el, log_el_files, intermediate_length
     global multi_rounding_el, mrel_method, mrel_params, mrel_rewards
     global debuging_mrel, mrel_debug_file
@@ -500,7 +491,7 @@ def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
                                    ["multi_round_el=", "help", "log", "simple_mc",
-                                    "save_samples", "verbose_log_el", "debug_mrel",
+                                    "verbose_log_el", "debug_mrel",
                                     "log_agent_failures"])
     except getopt.GetoptError as err:
         print(str(err))
@@ -543,7 +534,6 @@ def main():
         elif opt == "-n": cluster_node              = "_"+arg
         elif opt == "-t": threads                   = int(arg)
         elif opt == "--log":            logging     = True
-        elif opt == "--save_samples":   sampling    = True
         elif opt == "--simple_mc":      simple_mc   = True
         elif opt == "--verbose_log_el": logging_el  = True
         elif opt == "--multi_round_el":
@@ -694,16 +684,6 @@ def main():
         log_file.close()
         print("Logging to file:         " + log_file_name)
 
-    # Assignment for dictionary even if not used
-    adaptive_sample_file_name = ''
-    # set up file to save used adaptive samples
-    if sampling:
-        adaptive_sample_file_name = "./adaptive-samples/" + str(refm) + "_" + str(disc_rate) + "_" \
-                        + str(episode_length) + "_" + str(agent) + cluster_node \
-                        + strftime("_%Y_%m%d_%H_%M_%S",localtime()) + ".samples"
-        # adaptive_sample_file = open( adaptive_sample_file_name, 'w' )
-        print("Saving used adaptive samples to file: " + adaptive_sample_file_name)
-
 
     # set up files to log results at intermediate ELs
     if logging_el:
@@ -755,9 +735,7 @@ def main():
     config = {
         "logging": logging,
         "log_file_name": log_file_name,
-        "sampling": sampling,
         "sample_data": sample_data,
-        "adaptive_sample_file": adaptive_sample_file_name,
         "logging_el": logging_el,
         "log_el_files": log_el_files,
         "intermediate_length": intermediate_length,
@@ -785,9 +763,6 @@ def main():
 
     # close log file
     # if logging: log_file.close()
-
-    # close adaptive samples file
-    # if sampling: adaptive_sample_file.close()
 
     # close log-el files
     # if logging_el:

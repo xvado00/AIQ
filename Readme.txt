@@ -90,9 +90,6 @@ Arguments:
 
 --log  Switch on output logging
 
---save_samples  Switch on saving of environment programs used during
-  the test to a file, needs adaptive-samples directory.
-
 --verbose_log_el  Swith on logging intermediate results every 1000
   interactions, needs log-el directory.
 
