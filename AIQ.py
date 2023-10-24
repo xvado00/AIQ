@@ -280,8 +280,11 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
     # Load checkpoint data only if the file exists
     continue_from_log_path = config.get("continue_from_log_path")
     if continue_from_log_path is not None and os.path.isfile(continue_from_log_path):
-        print(f"Loaded log results from {continue_from_log_path}")
         _, log_results = log_loader.load_log_file(continue_from_log_path)
+        print(f"Loaded log results from {continue_from_log_path}")
+
+        if config.get("logging_el"):
+            log_loader.copy_verbose_log_el(continue_from_log_path, config["log_file_name"], N)
 
     for k in range(1, K):
         print()
@@ -393,7 +396,7 @@ def read_from_log(I, K, M, Y, k, log_results: list[log_loader.LogResult], config
             except IndexError as _:
                 # We run out of data -> return correct results that we got from previous stages
                 print(f"Loading of log DONE")
-                print(f"Log for stratum {k} is incomplete")
+                print(f"Log for stage {k} is incomplete")
                 print(f"Starting agent on stage {k}/{K - 1}")
                 return False
     # collect the results, adding new jobs to the pool for any failed runs
