@@ -30,14 +30,15 @@ def load_log_file(log_path: str) -> tuple[list[float], list[LogResult]]:
         results = []
         for line in file:
             line = line.split(" ")
-            assert len(line) in [4, 6], f"Can't parse line '{line}', Invalid format: {log_path}"
+            assert len(line) in [4, 7], f"Can't parse line '{line}', Invalid format: {log_path}"
 
             if len(line) == 4:
                 time, stratum_number, reward_1, reward_2 = line
                 fail1 = fail2 = program = None
             else:
-                # We have failure logging enamelled
+                # We have failure logging enabled
                 time, stratum_number, reward_1, reward_2, fail1, fail2, program = line
+                program: str = program.strip()
             stratum_number = int(stratum_number)
             reward_1 = float(reward_1)
             reward_2 = float(reward_2)
