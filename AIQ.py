@@ -53,7 +53,6 @@ def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, c
                               + str(s1) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
             log_el_file.flush()
             log_el_file.close()
-            log_el_files.append(log_el_file_name)
 
     return (s1,r1,r2)
 
