@@ -306,11 +306,20 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         # make sure each non-zero probability stratum gets sampled at least twice
         M = x + 2.0 * ceil(p)
 
+        print_log_loading_message = False
         if continue_from_log_path is not None and len(log_results) > 0:
-            is_stage_complete = read_from_log(I, K, M, Y, k, log_results, config)
+            is_stage_complete = read_from_log(I, M, Y, log_results, config)
 
             if not is_stage_complete:
+                # We run out of data -> return correct results that we got from previous stages
+                print("Loading of log DONE")
+                print(f"Log for stage {k} is incomplete")
+                print(f"Starting agent on stage {k}/{K - 1}")
                 run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call, samples, threads)
+            else:
+                # Log from this stage is complete, but the results have to be processed and then we print
+                # log complete message
+                print_log_loading_message = True
         else:
             run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call, samples, threads)
 
@@ -369,16 +378,19 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         if k >= min(3, K - 1):
             print("\n         %6i   % 5.1f +/- % 5.1f " % (N[k], est[k - 1], delta))
 
+        if print_log_loading_message and len(log_results) == 0:
+            print("Loading of log DONE")
+            print(f"Log for stage {k} is complete")
+            print(f"Starting agent on stage {k + 1}/{K - 1}")
 
-def read_from_log(I, K, M, Y, k, log_results: list[log_loader.LogResult], config: dict) -> bool:
+
+def read_from_log(I, M, Y, log_results: list[log_loader.LogResult], config: dict) -> bool:
     """
     Reads records in log_results and fills Y with fresh results.
 
     :param I: number of strata, including passive
-    :param K: Max stage number
     :param M:
     :param Y: collection of results divided up by stratum
-    :param k: stage number
     :param log_results:
     :param config:
     :return: True, if we had enough data to complete the stage
@@ -394,11 +406,8 @@ def read_from_log(I, K, M, Y, k, log_results: list[log_loader.LogResult], config
             try:
                 results.append(log_results.pop(0))
             except IndexError as _:
-                # We run out of data -> return correct results that we got from previous stages
-                print(f"Loading of log DONE")
-                print(f"Log for stage {k} is incomplete")
-                print(f"Starting agent on stage {k}/{K - 1}")
                 return False
+
     # collect the results, adding new jobs to the pool for any failed runs
     while results != []:
         result = results.pop(0)
