@@ -49,8 +49,6 @@ class Q_l(Agent):
         self.state  = 0
         self.action = 0
 
-        self.failed = False
-
         self.Q_value = self.init_Q * ones( (self.num_states, self.num_actions) )
         self.E_trace = zeros( (self.num_states, self.num_actions) )
         self.visits  = zeros( (self.num_states) )
