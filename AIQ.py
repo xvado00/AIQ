@@ -33,27 +33,23 @@ def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, c
 
     # log successful result to file
     if config["logging"] and not isnan(r1) and not isnan(r2):
-        log_file = open(config["log_file_name"], 'a')
-        # optionally log also if agent failed and on what program
-        if config["logging_agent_failures"]:
-            log_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
-                           + str(s) + " " + str(r1) + " " + str(r2) \
-                           + " " + str(f1) + " " + str(f2) + " " + program + "\n")
-        else:
-            log_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
-                           + str(s) + " " + str(r1) + " " + str(r2) + "\n")
-        log_file.flush()
-        log_file.close()
+        with open(config["log_file_name"], 'a') as log_file:
+            # optionally log also if agent failed and on what program
+            if config["logging_agent_failures"]:
+                log_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
+                               + str(s) + " " + str(r1) + " " + str(r2) \
+                               + " " + str(f1) + " " + str(f2) + " " + program + "\n")
+            else:
+                log_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
+                               + str(s) + " " + str(r1) + " " + str(r2) + "\n")
 
     # log successful intermediate results to files
     if config["logging_el"] and not isnan(r1) and not isnan(r2):
         for _ in range(episode_length // intermediate_length):
             log_el_file_name = config["log_el_files"].pop(0)
-            log_el_file = open(log_el_file_name, 'a')
-            log_el_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
-                              + str(s) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
-            log_el_file.flush()
-            log_el_file.close()
+            with  open(log_el_file_name, 'a') as log_el_file:
+                log_el_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
+                                  + str(s) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
 
     return (s,r1,r2)
 
@@ -123,12 +119,10 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
             mrel_status = "converged"
         else:
             mrel_status = "finished"
-        mrel_debug_file = open(config["mrel_debug_file_name"], 'w')
-        mrel_debug_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime())
-                              + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc)
-                              + " " + program + " " + str(rflip) + "\n")
-        mrel_debug_file.flush()
-        mrel_debug_file.close()
+        with open(config["mrel_debug_file_name"], 'w') as mrel_debug_file:
+            mrel_debug_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime())
+                                  + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc)
+                                  + " " + program + " " + str(rflip) + "\n")
 
     # dispose of agent and reference machine
     agent = None
@@ -488,16 +482,14 @@ def load_samples(refm, cluster_node, simple_mc):
 
     print("Loading program samples: " + program_sample_filename)
 
-    file = open(program_sample_filename)
-
-    num_strata = 0
-    sample_data = []
-    for line in file:
-        s, prog = line.split()
-        stratum = int(s)
-        num_strata = max(num_strata, stratum)
-        sample_data.append((stratum, prog))
-    file.close()
+    with open(program_sample_filename) as sample_file:
+        num_strata = 0
+        sample_data = []
+        for line in sample_file:
+            s, prog = line.split()
+            stratum = int(s)
+            num_strata = max(num_strata, stratum)
+            sample_data.append((stratum, prog))
 
     num_strata += 1  # due to strata starting at 0
     num_samples = len(sample_data)
@@ -759,12 +751,10 @@ def main():
         log_file_name = "./log/" + str(refm) + "_" + str(disc_rate) + "_" \
                         + str(episode_length) + "_" + str(agent) + cluster_node \
                         + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
-        log_file = open(log_file_name, 'w')
-        for i in range(1, len(dist)):
-            log_file.write(str(dist[i]) + " ")
-        log_file.write("\n")
-        log_file.flush()
-        log_file.close()
+        with open(log_file_name, 'w') as log_file:
+            for i in range(1, len(dist)):
+                log_file.write(str(dist[i]) + " ")
+            log_file.write("\n")
         print("Logging to file:         " + log_file_name)
 
 
@@ -781,12 +771,12 @@ def main():
                                    + str(disc_rate) + "_" + str(i * intermediate_length) + "_" \
                                    + str(agent) + cluster_node \
                                    + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
-                log_el_file = open(log_el_file_name, 'w')
-                for j in range(1, len(dist)):
-                    log_el_file.write(str(dist[j]) + " ")
-                log_el_file.write("\n")
-                log_el_file.flush()
-                log_el_file.close()
+
+                with open(log_el_file_name, 'w') as log_el_file:
+                    for j in range(1, len(dist)):
+                        log_el_file.write(str(dist[j]) + " ")
+                    log_el_file.write("\n")
+
                 log_el_files.append(log_el_file_name)
             print("Verbose logging at intermediate ELs to directory: ./log-el/" + log_el_dir_name)
         else:
@@ -803,17 +793,16 @@ def main():
         mrel_debug_file_name = "./debug/" + str(refm) + "_" + str(disc_rate) + "_" \
                                + str(episode_length) + "_" + str(agent) + cluster_node \
                                + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
-        mrel_debug_file = open(mrel_debug_file_name, 'w')
-        mrel_debug_file.write("# Multi-round EL convergence method: " + mrel_method + "\n")
-        mrel_debug_file.write("# Multi-round EL convergence method parameters:\n")
-        if mrel_method == "Delta":
-            mrel_debug_file.write("#   Delta=" + str(mrel_Delta_diff) + "\n")
-            mrel_debug_file.write("#   EL=" + str(mrel_Delta_el) + "\n")
-        elif mrel_method == "delta":
-            mrel_debug_file.write("#   delta=" + str(mrel_delta_diff) + "\n")
-            mrel_debug_file.write("#   EL=" + str(mrel_delta_el) + "\n")
-        mrel_debug_file.flush()
-        mrel_debug_file.close()
+
+        with open(mrel_debug_file_name, 'w') as mrel_debug_file:
+            mrel_debug_file.write("# Multi-round EL convergence method: " + mrel_method + "\n")
+            mrel_debug_file.write("# Multi-round EL convergence method parameters:\n")
+            if mrel_method == "Delta":
+                mrel_debug_file.write("#   Delta=" + str(mrel_Delta_diff) + "\n")
+                mrel_debug_file.write("#   EL=" + str(mrel_Delta_el) + "\n")
+            elif mrel_method == "delta":
+                mrel_debug_file.write("#   delta=" + str(mrel_delta_diff) + "\n")
+                mrel_debug_file.write("#   EL=" + str(mrel_delta_el) + "\n")
         print("MREL debug logging to file:         " + mrel_debug_file_name)
 
     config = {
