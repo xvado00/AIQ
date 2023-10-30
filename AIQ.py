@@ -126,8 +126,8 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
                                   + " " + program + " " + str(rflip) + "\n")
 
     # dispose of agent and reference machine
-    agent = None
-    refm = None
+    del agent
+    del refm
 
     return stratum, disc_reward, disc_rewards, agent_failure
 
