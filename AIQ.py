@@ -86,7 +86,8 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
 
             # we signal failure with a NaN so as not to upset
             # the parallel map running this with an exception
-            if steps == refm.max_steps: return (stratum, float('nan'), disc_rewards, agent_failure)
+            if steps == refm.max_steps:
+                return (stratum, float('nan'), disc_rewards, agent_failure)
 
             disc_reward += discount * rflip * reward
             discount *= disc_rate
@@ -228,7 +229,8 @@ def simple_mc_estimator(refm_call, agent_call, episode_length, disc_rate,
                 half_ci = 1.96 * result[:i].std(ddof=1) / sqrt(i)
                 print("         %6i  % 5.1f +/- % 5.1f " % (i, mean, half_ci))
             i += 1
-            if i >= sample_size: break
+            if i >= sample_size:
+                break
 
 
 # Adaptive stratified estimator
@@ -624,10 +626,14 @@ def main():
             sys.exit()
 
     # basic parameter checks
-    if agent_str == None: raise NameError("missing agent")
-    if refm_str == None: raise NameError("missing reference machine")
-    if disc_rate == None: disc_rate = 1.0
-    if logging and simple_mc:  raise NameError("Simple mc doesn't do logging")
+    if agent_str is None:
+        raise NameError("missing agent")
+    if refm_str is None:
+        raise NameError("missing reference machine")
+    if disc_rate is None:
+        disc_rate = 1.0
+    if logging and simple_mc:
+        raise NameError("Simple mc doesn't do logging")
     if agent_str == "Manual" and not simple_mc:
         raise NameError("Manual control only works with the simple mc sampler")
     if multi_rounding_el and not logging_el:
@@ -706,7 +712,8 @@ def main():
 
     # construct agent
     agent_call = agent_str + "." + agent_str + "( refm, " + str(disc_rate)
-    for param in agent_params: agent_call += ", " + str(param)
+    for param in agent_params:
+        agent_call += ", " + str(param)
     agent_call += " )"
     agent = eval(agent_call)
 
