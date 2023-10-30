@@ -54,7 +54,7 @@ def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, c
     return s, r1, r2
 
 
-# Perform a single run of an agent in an enviornment and collect the results
+# Perform a single run of an agent in an environment and collect the results
 def _test_agent(refm_call, agent_call, rflip, episode_length,
                 disc_rate, stratum, program, config):
     # create reference machine
@@ -79,7 +79,7 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
 
     for i in range(1, episode_length + 1):
         # test only if not sufficiently converged
-        # or if no mrel optimalization used
+        # or if no mrel optimization used
         if not mrel_stop:
             action = agent.perceive(observations, rflip * reward)
             reward, observations, steps = refm.act(action)
@@ -115,7 +115,7 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
         agent_failure = agent.has_failed()
 
     # save debug information
-    if config["debuging_mrel"]:
+    if config["debugging_mrel"]:
         if mrel_stop:
             mrel_status = "converged"
         else:
@@ -144,7 +144,7 @@ def normalise_reward(episode_length, disc_rate, disc_reward):
     return disc_reward
 
 
-# Evaluate if a stopping condition for a multi-round EL convergence optimalization
+# Evaluate if a stopping condition for a multi-round EL convergence optimization
 # is met based on which evaluation method is used.
 def evaluate_mrel_stopping_condition(disc_rewards, current_iteration, config):
     mrel_stop = False
@@ -161,7 +161,7 @@ def evaluate_mrel_stopping_condition(disc_rewards, current_iteration, config):
     return mrel_stop, converged_reward
 
 
-# Specific evaluation methods for a multi-round EL convergence optimalization
+# Specific evaluation methods for a multi-round EL convergence optimization
 # Delta: absolute difference in score at two consecutive ELs to evaluate
 # is less than a specified difference
 def _evaluate_mrel_Delta_stopping_condition(disc_rewards, current_iteration, config):
@@ -246,8 +246,8 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
     A = sum(ceil(p))  # active strata
 
     # With N below I keep the steps small to start with to force the system
-    # sample a reasonable number of each to get better variabilty estimates
-    # before starting to adpat more.  It would be nice to have a fully online
+    # sample a reasonable number of each to get better variability estimates
+    # before starting to adapt more.  It would be nice to have a fully online
     # version without these steps.
     N = [0, 3 * A, 6 * A, 10 * A,
          20 * A, 30 * A, 50 * A, 70 * A, 100 * A, 250 * A, 500 * A, 750 * A, 1000 * A,
@@ -286,7 +286,7 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         # compute the allocations with "method a" from the paper,
         # deducting 2A from the target which is added afterward to ensure
         # all strata get at least 2 samples
-        # We also divide by 2, than multiple by 2 later on to ensure that
+        # We also divide by 2, than multiply by 2 later on to ensure that
         # the sample size in each stratum is even (this is for antithetic variables)
 
         m = (p * s[k - 1]) / sum(p * s[k - 1]) * (N[k] - N[k - 1] - 2.0 * A) / 2.0
@@ -318,7 +318,7 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
         else:
             run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call, samples, threads)
 
-        # compute new total program sample counts for each strata
+        # compute new total program sample counts for each stratum
         n[k] = n[k - 1] + M
 
         # compute empirical standard deviations for each stratum
@@ -533,7 +533,7 @@ multi_rounding_el = False
 mrel_method = None
 mrel_params = []
 mrel_rewards = []
-debuging_mrel = False
+debugging_mrel = False
 mrel_debug_file = None
 logging_agent_failures = False
 
@@ -542,7 +542,7 @@ def main():
     global logging, log_file
     global logging_el, log_el_files, intermediate_length
     global multi_rounding_el, mrel_method, mrel_params, mrel_rewards
-    global debuging_mrel, mrel_debug_file
+    global debugging_mrel, mrel_debug_file
     global logging_agent_failures
 
     print()
@@ -615,7 +615,7 @@ def main():
                 mrel_params.append(float(a))
 
         elif opt == "--debug_mrel":
-            debuging_mrel = True
+            debugging_mrel = True
         elif opt == "--log_agent_failures":
             logging_agent_failures = True
         elif opt == "--continue_from_log":
@@ -641,8 +641,8 @@ def main():
     if multi_rounding_el and not mrel_method in ["Delta", "delta"]:
         raise NameError("unrecognized multi-round EL convergence method \
                 (only 'Delta' or 'delta' implemented)")
-    if debuging_mrel and not multi_rounding_el:
-        raise NameError("debuging of multi-round EL convergence possible only with multi-round EL convergence enabled")
+    if debugging_mrel and not multi_rounding_el:
+        raise NameError("debugging of multi-round EL convergence possible only with multi-round EL convergence enabled")
 
     # Load multi-EL methods parameters or set defaults
     if multi_rounding_el:
@@ -795,8 +795,8 @@ def main():
 
     # Assignment for dictionary even if not used
     mrel_debug_file_name = ''
-    # set up file to save multi-round EL convergence debug informations
-    if debuging_mrel:
+    # set up file to save multi-round EL convergence debug information
+    if debugging_mrel:
         mrel_debug_file_name = "./debug/" + str(refm) + "_" + str(disc_rate) + "_" \
                                + str(episode_length) + "_" + str(agent) + cluster_node \
                                + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
@@ -823,7 +823,7 @@ def main():
         "mrel_method": mrel_method,
         "mrel_params": mrel_params,
         "mrel_rewards": mrel_rewards,
-        "debuging_mrel": debuging_mrel,
+        "debugging_mrel": debugging_mrel,
         "mrel_debug_file": mrel_debug_file_name,
         "logging_agent_failures": logging_agent_failures,
         "continue_from_log_path": continue_from_log_path
@@ -849,7 +849,7 @@ def main():
     #         config["log_el_files"].pop().close()
 
     # close mrel debug file
-    # if debuging_mrel: mrel_debug_file.close()
+    # if debugging_mrel: mrel_debug_file.close()
 
 
 if __name__ == "__main__":
