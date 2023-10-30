@@ -51,7 +51,7 @@ def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, c
                 log_el_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
                                   + str(s) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
 
-    return (s,r1,r2)
+    return s, r1, r2
 
 
 # Perform a single run of an agent in an enviornment and collect the results
@@ -87,7 +87,7 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
             # we signal failure with a NaN so as not to upset
             # the parallel map running this with an exception
             if steps == refm.max_steps:
-                return (stratum, float('nan'), disc_rewards, agent_failure)
+                return stratum, float('nan'), disc_rewards, agent_failure
 
             disc_reward += discount * rflip * reward
             discount *= disc_rate
@@ -249,8 +249,8 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
     # sample a reasonable number of each to get better variabilty estimates
     # before starting to adpat more.  It would be nice to have a fully online
     # version without these steps.
-    N = [0, 3 * A, 6 * A, 10 * A, \
-         20 * A, 30 * A, 50 * A, 70 * A, 100 * A, 250 * A, 500 * A, 750 * A, 1000 * A, \
+    N = [0, 3 * A, 6 * A, 10 * A,
+         20 * A, 30 * A, 50 * A, 70 * A, 100 * A, 250 * A, 500 * A, 750 * A, 1000 * A,
          1250 * A, 1500 * A, 1750 * A, 2000 * A, 2500 * A, 3000 * A, 3500 * A, 4000 * A, 5000 * A]
 
     # trim to number of program samples, or requested sample size, which ever is smaller
@@ -269,7 +269,7 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
     Y[0] = [0]
     s = ones((K, I))  # estimated standard deviations for each stage & strata
     n = zeros((K, I))  # for each step the size of each stratum
-    est = zeros((K))  # estimated confidence intervals
+    est = zeros(K)  # estimated confidence intervals
 
     log_results = None
     # Load checkpoint data only if the file exists
