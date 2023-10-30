@@ -653,7 +653,7 @@ def main():
             if len(mrel_params) > 0:
                 param = mrel_params.pop(0)
                 # rewards are bounded and Delta is absolute
-                if param >= 0 and param < 100:
+                if 0 <= param < 100:
                     mrel_Delta_diff = param
                 else:
                     raise NameError("invalid MREL Delta parameter value: \
@@ -661,7 +661,7 @@ def main():
 
                 if len(mrel_params) > 0:
                     param = int(mrel_params.pop(0))
-                    if param >= intermediate_length and param <= episode_length / 2 and param % intermediate_length == 0:
+                    if intermediate_length <= param <= episode_length / 2 and param % intermediate_length == 0:
                         mrel_Delta_el = param
                     else:
                         raise NameError("invalid MREL Delta parameter value: \
@@ -673,7 +673,7 @@ def main():
             if len(mrel_params) > 0:
                 param = mrel_params.pop(0)
                 # delta is absolute value in percent, lower values are interesting
-                if param >= 0 and param <= 100:
+                if 0 <= param <= 100:
                     mrel_delta_diff = param
                 else:
                     raise NameError("invalid MREL delta parameter value: \
@@ -681,7 +681,7 @@ def main():
 
                 if len(mrel_params) > 0:
                     param = int(mrel_params.pop(0))
-                    if param >= intermediate_length and param <= episode_length / 2 and param % intermediate_length == 0:
+                    if intermediate_length <= param <= episode_length / 2 and param % intermediate_length == 0:
                         mrel_delta_el = param
                     else:
                         raise NameError("invalid MREL delta parameter value: \
