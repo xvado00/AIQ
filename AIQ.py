@@ -764,7 +764,6 @@ def main():
             log_file.write("\n")
         print("Logging to file:         " + log_file_name)
 
-
     # set up files to log results at intermediate ELs
     if logging_el:
         if episode_length > intermediate_length:
