@@ -690,7 +690,7 @@ def main():
     # compute episode_length to have 95% of the infinite total in each episode
     # or if episode_length given compute the proportion that this gives
     proportion_of_total = 0.95
-    if episode_length == None:
+    if episode_length is None:
         if disc_rate == 1.0:
             print("With a discount rate of 1.0 you must set the episode length.")
             print()
@@ -740,7 +740,7 @@ def main():
     # load in program samples
     samples, dist = load_samples(refm, cluster_node, simple_mc)
 
-    if sample_size == None:
+    if sample_size is None:
         sample_size = len(sample_data)
 
     # The following is a crude check as we can still run out of samples in a
