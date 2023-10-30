@@ -26,10 +26,10 @@ from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
 # to get antithetic variance reduction.
 def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, config):
     # run twice with flipped reward second time
-    s1, r1, ir1, f1 = _test_agent(refm_call, a_call, 1.0, episode_length,
+    s, r1, ir1, f1 = _test_agent(refm_call, a_call, 1.0, episode_length,
                                   disc_rate, stratum, program, config)
-    s2, r2, ir2, f2 = _test_agent(refm_call, a_call, -1.0, episode_length,
-                                  disc_rate, stratum, program, config)
+    _, r2, ir2, f2 = _test_agent(refm_call, a_call, -1.0, episode_length,
+                                 disc_rate, stratum, program, config)
 
     # log successful result to file
     if config["logging"] and not isnan(r1) and not isnan(r2):
@@ -37,25 +37,25 @@ def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, c
         # optionally log also if agent failed and on what program
         if config["logging_agent_failures"]:
             log_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
-                           + str(s1) + " " + str(r1) + " " + str(r2) \
+                           + str(s) + " " + str(r1) + " " + str(r2) \
                            + " " + str(f1) + " " + str(f2) + " " + program + "\n")
         else:
             log_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
-                           + str(s1) + " " + str(r1) + " " + str(r2) + "\n")
+                           + str(s) + " " + str(r1) + " " + str(r2) + "\n")
         log_file.flush()
         log_file.close()
 
     # log successful intermediate results to files
     if config["logging_el"] and not isnan(r1) and not isnan(r2):
-        for i in range(episode_length // intermediate_length):
+        for _ in range(episode_length // intermediate_length):
             log_el_file_name = config["log_el_files"].pop(0)
             log_el_file = open(log_el_file_name, 'a')
             log_el_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
-                              + str(s1) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
+                              + str(s) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
             log_el_file.flush()
             log_el_file.close()
 
-    return (s1,r1,r2)
+    return (s,r1,r2)
 
 
 # Perform a single run of an agent in an enviornment and collect the results
@@ -78,7 +78,6 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
 
     mrel_stop = False
     estimated_ioc = 0
-    convergence_logged = False
 
     agent_failure = '-'
 
@@ -401,7 +400,7 @@ def read_from_log(I, M, Y, log_results: list[log_loader.LogResult], config: dict
     # add samples to processing pool (we skip stratum 0 which is passive)
     # We choose number of  programs here according to M[i]
     for i in range(1, I):
-        for j in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
+        for _ in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
 
             try:
                 results.append(log_results.pop(0))
@@ -436,7 +435,7 @@ def run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call,
     # add samples to processing pool (we skip stratum 0 which is passive)
     # We choose number of  programs here according to M[i]
     for i in range(1, I):
-        for j in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
+        for _ in range(int(M[i]) // 2):  # /2 is due to sampling each program twice
 
             if len(samples[i]) == 0:
                 print("Error: Run out of program samples in stratum: " + str(i))
@@ -503,8 +502,8 @@ def load_samples(refm, cluster_node, simple_mc):
     num_strata += 1  # due to strata starting at 0
     num_samples = len(sample_data)
 
-    samples = [[] for i in range(num_strata)]
-    dist = zeros((num_strata))
+    samples = [[] for _ in range(num_strata)]
+    dist = zeros(num_strata)
 
     for stratum, program in sample_data:
         samples[stratum].append(program)
@@ -842,8 +841,6 @@ def main():
         # some agents have trouble serialising which messes up the multiprocessing
         # library that Python uses.  Easier just to construct the agent inside the
         # method that gets called in parallel.
-        agent = None
-
         stratified_estimator(refm_call, agent_call, episode_length, disc_rate,
                              samples, sample_size, dist, threads, config)
 
