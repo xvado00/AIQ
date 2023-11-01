@@ -839,17 +839,5 @@ def main():
         stratified_estimator(refm_call, agent_call, episode_length, disc_rate,
                              samples, sample_size, dist, threads, config)
 
-    # close log file
-    # if logging: log_file.close()
-
-    # close log-el files
-    # if logging_el:
-    #     for i in range( episode_length // intermediate_length ):
-    #         config["log_el_files"].pop().close()
-
-    # close mrel debug file
-    # if debugging_mrel: mrel_debug_file.close()
-
-
 if __name__ == "__main__":
     main()
