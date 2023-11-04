@@ -3,6 +3,8 @@
 # HLQ(lambda) agent with epsilon greed exploration
 #
 # Copyright Shane Legg 2011
+# Copyright Petr Zeman 2023
+# Copyright Ondřej Vadinský 2023
 # Released under GNU GPLv3
 #
 

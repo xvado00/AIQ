@@ -5,6 +5,9 @@
 # sampled environments with respect to some given reference machine.
 #
 # Copyright Shane Legg 2011
+# Copyright Ondřej Vadinský 2018, 2023
+# Copyright Petr Zeman 2023
+# Copyright Jan Štipl 2023
 # Released under the GNU GPLv3
 #
 

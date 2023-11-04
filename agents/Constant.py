@@ -1,3 +1,11 @@
+
+#
+# Simple agent that allways performs specified action for testing in AIQ
+#
+# Copyright Jan Štipl 2023
+# Released under GNU GPLv3
+#
+
 from typing import Generator
 
 from refmachines.ReferenceMachine import ReferenceMachine

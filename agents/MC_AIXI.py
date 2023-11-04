@@ -4,6 +4,8 @@
 # and to be located in the agents directory.
 #
 # Copyright Shane Legg 2011
+# Copyright Ondřej Vadinský 2018
+# Copyright Petr Zeman 2023
 # Released under GNU GPLv3
 #
 

@@ -5,6 +5,8 @@
 # Remember to add any new agents to the list in __init__
 #
 # Copyright Shane Legg 2011
+# Copyright Ondřej Vadinský 2023
+# Copyright Petr Zeman 2023
 # Released under GNU GPLv3
 #
 

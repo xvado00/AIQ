@@ -3,6 +3,8 @@
 # BF derived reference machine for use with AIQ
 #
 # Copyright Shane Legg 2011
+# Copyright Ondřej Vadinský 2018
+# Copyright Petr Zeman 2023
 # Released under GNU GPLv3
 
 

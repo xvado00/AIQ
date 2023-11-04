@@ -3,6 +3,8 @@
 # Q(lambda) algorithm for Sutton and Barto page 184
 #
 # Copyright Shane Legg 2011
+# Copyright Petr Zeman 2023
+# Copyright Ondřej Vadinský 2023
 # Released under GNU GPLv3
 #
 

@@ -1,3 +1,11 @@
+
+#
+# Restore a previous AIQ test run from log files
+#
+# Copyright Jan Štipl 2023
+# Released under GNU GPLv3
+#
+
 from dataclasses import dataclass
 from typing import Any
 from pathlib import Path

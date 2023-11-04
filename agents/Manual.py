@@ -2,6 +2,7 @@
 # A simple agent that is controlled by the user from the keyboard
 #
 # Copyright Shane Legg 2011
+# Copyright Petr Zeman 2023
 # Released under GNU GPLv3
 
 import sys
