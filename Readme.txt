@@ -14,6 +14,18 @@ and for the theory behind that see:
 Universal Intelligence: A formal definition of machine intelligence
 by Shane Legg and Marcus Hutter, 2007
 
+For the theory behind the improvements see:
+
+Towards General Evaluation of Intelligent Systems:
+Lessons Learned from Reproducing AIQ Test Results
+by Ondřej Vadinský, 2018
+
+and
+
+Towards General Evaluation of Intelligent Systems:
+Using Semantic Analysis to Improve Environments in the AIQ Test
+by Ondřej Vadinský, 2018
+
 The code is released under the GNU GPLv3.  See Licence.txt file.
 
 
@@ -54,13 +66,6 @@ too much confidence in the estimated CI figures.
 
 Outline of files and directories:
 ---------------------------------
-
-
-Conf Paper Settings.ods
-
-This spreadsheet file (in open document format, open with OpenOffice
-or LibreOffice) contains the settings used to obtain the results in
-the AIQ conference paper.
 
 
 AIQ.py 
@@ -128,8 +133,7 @@ default, you can specify other values), an episode length of 1000
 with no discounting, and Q lambda with parameters...
 
 If you want to try BF with, say, a 14 symbol tape, you'll first need
-to generate a program sample file for this (see below).  We only
-include our BF5 sample file in github to save space.
+to generate a program sample file for this (see below).
 
 
 
@@ -218,5 +222,18 @@ are named by the reference machine (including parameters) followed by
 what strata they are in, and AIQ also computes the estimated true
 strata probabilities based on this sample.  So make it reasonable
 large.  Say 100k programs for proper tests.  Use BF_sampler.py to
-generate these for the BF reference machine.  We include a sample
-file for a 5 symbol tape to get you started.
+generate these for the BF reference machine.
+
+
+
+Suggested parameters:
+---------------------
+
+
+To generate a BF programs sample:
+python BF_sampler.py -s 200000 --improved_optimization \
+  --improved_discriminativeness
+
+To run a test with an <agent> of choice:
+python AIQ.py --log --verbose_log_el --log_agent_failures \
+  -r BF -a <agent> -l 100000 -s 10000
