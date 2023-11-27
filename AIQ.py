@@ -48,9 +48,8 @@ def test_agent(refm_call, a_call, episode_length, disc_rate, stratum, program, c
 
     # log successful intermediate results to files
     if config["logging_el"] and not isnan(r1) and not isnan(r2):
-        for _ in range(episode_length // intermediate_length):
-            log_el_file_name = config["log_el_files"].pop(0)
-            with  open(log_el_file_name, 'a') as log_el_file:
+        for log_el_file_name in config["log_el_files"]:
+            with open(log_el_file_name, 'a') as log_el_file:
                 log_el_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime()) \
                                   + str(s) + " " + str(ir1.pop(0)) + " " + str(ir2.pop(0)) + "\n")
 
@@ -215,25 +214,25 @@ def _evaluate_mrel_delta_stopping_condition(disc_rewards, current_iteration, con
 
 
 # Simple MC estimator, useful for checking the more complex adaptive estimator.
-# It doesn't do logging as the log file assumes dual runs for antithetic variables.
 def simple_mc_estimator(refm_call, agent_call, episode_length, disc_rate,
                         sample_size, config):
     print()
     result = zeros((len(config["sample_data"])))
-    i = 0
+    i = 0  # Successful runs counter
     for stratum, program in config["sample_data"]:
-        rflip = choice([-1, 1])
-        perf = _test_agent(refm_call, agent_call, rflip, episode_length, disc_rate,
-                           stratum, program, config)[1]
-        if not isnan(perf):
-            result[i] = perf
-            if i % 10 == 0 and i > 10:
-                mean = result[:i].mean()
-                half_ci = 1.96 * result[:i].std(ddof=1) / sqrt(i)
-                print("         %6i  % 5.1f +/- % 5.1f " % (i, mean, half_ci))
-            i += 1
-            if i >= sample_size:
-                break
+        _s, r1, _r2 = test_agent(refm_call, agent_call, episode_length, disc_rate, stratum, program, config)
+        if isnan(r1):
+            # Input program was invalid / didn't return
+            continue
+        i += 1
+        result[i] = r1
+        if i % 10 == 0 and i > 10:
+            mean = result[:i].mean()
+            half_ci = 1.96 * result[:i].std(ddof=1) / sqrt(i)
+            print("         %6i  % 5.1f +/- % 5.1f " % (i, mean, half_ci))
+
+        if i >= sample_size:
+            break
 
 
 # Adaptive stratified estimator
@@ -635,8 +634,6 @@ def main():
         raise NameError("missing reference machine")
     if disc_rate is None:
         disc_rate = 1.0
-    if logging and simple_mc:
-        raise NameError("Simple mc doesn't do logging")
     if agent_str == "Manual" and not simple_mc:
         raise NameError("Manual control only works with the simple mc sampler")
     if multi_rounding_el and not logging_el:
