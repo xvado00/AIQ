@@ -120,6 +120,11 @@ Arguments:
 	(can be used to increase sample size or to salvage results of
 	incomplete test runs depending on the -s value provided).
 
+--log_interactions Logs all agent <--> evniroment intercations to a log file.
+    Each program run has it's own log file.
+
+--log_agent Logs agent logs from agent.get_log() to a log file.
+
 An example run of AIQ would be:
 
 python AIQ.py -r BF -a Q_l,0.0,0.5,0.5,0.05,0.9  -l 1000 -s 1000
