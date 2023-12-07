@@ -11,21 +11,22 @@
 # Released under the GNU GPLv3
 #
 
-import json
-from datetime import datetime
-from hashlib import sha256
-from refmachines import *
-from agents import *
-import AIQ_continue_from_log as log_loader
 import getopt
+import json
 import os
 import sys
+from datetime import datetime
+from hashlib import sha256
 from math import isnan
 from multiprocessing import Pool
 from time import sleep, localtime, strftime
 
-from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
 import numpy as np
+from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
+
+import AIQ_continue_from_log as log_loader
+from refmachines import *
+from agents import *
 
 
 class NpEncoder(json.JSONEncoder):
