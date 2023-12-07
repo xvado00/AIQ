@@ -7,6 +7,7 @@
 # Copyright Shane Legg 2011
 # Copyright Ondřej Vadinský 2023
 # Copyright Petr Zeman 2023
+# Copyright Jan Štipl 2023
 # Released under GNU GPLv3
 #
 
@@ -24,6 +25,7 @@ class Agent:
         self.sel_mode    = 0
         self.disc_rate   = disc_rate
         self.failed      = False
+        self.logging_enabled = False
 
     def __str__( self ):
         raise NameError("You need to override Agent.__str__")
@@ -49,6 +51,14 @@ class Agent:
         :return: dict with logs in any format that can be json serialized
         """
         return {}
+
+    def set_logging( self, logging_enabled: bool ):
+        """
+        Used to enable/disable internal agent logging
+
+        :param logging_enabled:
+        """
+        self.logging_enabled = logging_enabled
 
     # return the index of the highest q_value, choosing one
     # of them at random if multiple optimal values exist
