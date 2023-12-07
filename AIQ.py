@@ -85,6 +85,8 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
     # create agent
     agent = eval(agent_call)
     agent.reset()
+    if config["log_agent"]:
+        agent.set_logging(True)
 
     disc_reward = 0.0
     discount = 1.0
