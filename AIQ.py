@@ -97,12 +97,15 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
     estimated_ioc = 0
 
     agent_failure = '-'
-
+    interactions = []
     for i in range(1, episode_length + 1):
         # test only if not sufficiently converged
         # or if no mrel optimization used
         if not mrel_stop:
             action = agent.perceive(observations, rflip * reward)
+            if config["log_interactions"]:
+                obs_str = ",".join([str(obs) for obs in observations])
+                interactions.append(f"{rflip * reward},{action},{obs_str}\n")
             reward, observations, steps = refm.act(action)
 
             # we signal failure with a NaN so as not to upset
@@ -157,6 +160,14 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
             }
             json.dump(record, agent_log, cls=NpEncoder)
             agent_log.write("\n")
+
+    # save agent <-> env interactions
+    if config["log_interactions"]:
+        program_hash = sha256(program.encode('utf-8')).hexdigest()
+        file_path = f'{config["log_interactions_dir_path"]}{time_str.replace(":", "_")}_{program_hash}.csv'
+        with open(file_path, "w") as interactions_log:
+            interactions_log.write(f'{rflip},"{program}"\n')
+            interactions_log.writelines(interactions)
 
     # dispose of agent and reference machine
     del agent
@@ -593,6 +604,7 @@ def main():
                                        "debug_mrel",
                                        "log_agent_failures",
                                        "continue_from_log=",
+                                       "log_interactions",
                                        "log_agent"
                                    ])
     except getopt.GetoptError as err:
@@ -612,6 +624,7 @@ def main():
     threads = 0
     continue_from_log_path = None
     log_agent = False
+    log_interactions = False
     # exit on no arguments
     if opts == []:
         print("No arguments were given")
@@ -663,6 +676,8 @@ def main():
             continue_from_log_path = arg
         elif opt == "--log_agent":
             log_agent = True
+        elif opt == "--log_interactions":
+            log_interactions = True
         else:
             print("Unrecognised option")
             usage()
@@ -853,6 +868,11 @@ def main():
                 mrel_debug_file.write("#   EL=" + str(mrel_delta_el) + "\n")
         print("MREL debug logging to file:         " + mrel_debug_file_name)
 
+    log_interactions_dir_path = f"./log-interactions/{base_log_name.rstrip('.log')}/"
+    if log_interactions:
+        if not os.path.exists(log_interactions_dir_path):
+            os.makedirs(log_interactions_dir_path)
+
     log_agent_file_path = "./log-agent/"
     if log_agent:
         if not os.path.exists(log_agent_file_path):
@@ -875,6 +895,8 @@ def main():
         "continue_from_log_path": continue_from_log_path,
         "log_agent": log_agent,
         "log_agent_file_path": log_agent_file_path + base_log_name,
+        "log_interactions": log_interactions,
+        "log_interactions_dir_path": log_interactions_dir_path
     }
 
     # run an estimation algorithm
@@ -887,6 +909,7 @@ def main():
         # method that gets called in parallel.
         stratified_estimator(refm_call, agent_call, episode_length, disc_rate,
                              samples, sample_size, dist, threads, config)
+
 
 if __name__ == "__main__":
     main()
