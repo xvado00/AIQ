@@ -41,6 +41,15 @@ class Agent:
     def has_failed( self ):
         return self.failed
 
+    def get_logs( self ) -> dict:
+        """
+        Returns agent inners logs
+        Used mainly for debugging
+
+        :return: dict with logs in any format that can be json serialized
+        """
+        return {}
+
     # return the index of the highest q_value, choosing one
     # of them at random if multiple optimal values exist
     def random_optimal( self, q_values ):

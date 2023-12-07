@@ -11,6 +11,9 @@
 # Released under the GNU GPLv3
 #
 
+import json
+from datetime import datetime
+from hashlib import sha256
 from refmachines import *
 from agents import *
 import AIQ_continue_from_log as log_loader
@@ -19,10 +22,26 @@ import os
 import sys
 from math import isnan
 from multiprocessing import Pool
-from random import choice
 from time import sleep, localtime, strftime
 
 from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
+import numpy as np
+
+
+class NpEncoder(json.JSONEncoder):
+    """
+    Custom encoder, because float32 can't be encoded
+    https://itsourcecode.com/typeerror/typeerror-object-of-type-float32-is-not-json-serializable/
+    """
+
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 # Test an agent by performing both positive and negative reward runs in order
@@ -116,6 +135,8 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
     if config["logging_agent_failures"]:
         agent_failure = agent.has_failed()
 
+    time_str = datetime.now().strftime("%Y_%m%d_%H:%M:%S.%f")
+
     # save debug information
     if config["debugging_mrel"]:
         if mrel_stop:
@@ -123,9 +144,19 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
         else:
             mrel_status = "finished"
         with open(config["mrel_debug_file_name"], 'w') as mrel_debug_file:
-            mrel_debug_file.write(strftime("%Y_%m%d_%H:%M:%S ", localtime())
-                                  + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc)
+            mrel_debug_file.write(time_str + mrel_status + " " + str(disc_reward) + " " + str(estimated_ioc)
                                   + " " + program + " " + str(rflip) + "\n")
+    # save internal agent logs
+    if config["log_agent"]:
+        with open(config["log_agent_file_path"], "a") as agent_log:
+            record = {
+                "time_stamp": time_str,
+                "rflip": rflip,
+                "program": program,
+                "agent_log": agent.get_logs()
+            }
+            json.dump(record, agent_log, cls=NpEncoder)
+            agent_log.write("\n")
 
     # dispose of agent and reference machine
     del agent
@@ -553,9 +584,17 @@ def main():
     # get the command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "r:d:l:a:n:s:t:",
-                                   ["multi_round_el=", "help", "log", "simple_mc",
-                                    "verbose_log_el", "debug_mrel",
-                                    "log_agent_failures", "continue_from_log="])
+                                   [
+                                       "multi_round_el=",
+                                       "help",
+                                       "log",
+                                       "simple_mc",
+                                       "verbose_log_el",
+                                       "debug_mrel",
+                                       "log_agent_failures",
+                                       "continue_from_log=",
+                                       "log_agent"
+                                   ])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -572,7 +611,7 @@ def main():
     refm_params = []
     threads = 0
     continue_from_log_path = None
-
+    log_agent = False
     # exit on no arguments
     if opts == []:
         print("No arguments were given")
@@ -622,6 +661,8 @@ def main():
             logging_agent_failures = True
         elif opt == "--continue_from_log":
             continue_from_log_path = arg
+        elif opt == "--log_agent":
+            log_agent = True
         else:
             print("Unrecognised option")
             usage()
@@ -753,11 +794,12 @@ def main():
 
     # Assignment for dictionary even if not used
     log_file_name = ''
+    base_log_name = str(refm) + "_" + str(disc_rate) + "_" \
+                    + str(episode_length) + "_" + str(agent) + cluster_node \
+                    + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
     # report logging
     if logging:
-        log_file_name = "./log/" + str(refm) + "_" + str(disc_rate) + "_" \
-                        + str(episode_length) + "_" + str(agent) + cluster_node \
-                        + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
+        log_file_name = "./log/" + base_log_name
         with open(log_file_name, 'w') as log_file:
             for i in range(1, len(dist)):
                 log_file.write(str(dist[i]) + " ")
@@ -811,6 +853,11 @@ def main():
                 mrel_debug_file.write("#   EL=" + str(mrel_delta_el) + "\n")
         print("MREL debug logging to file:         " + mrel_debug_file_name)
 
+    log_agent_file_path = "./log-agent/"
+    if log_agent:
+        if not os.path.exists(log_agent_file_path):
+            os.mkdir(log_agent_file_path)
+
     config = {
         "logging": logging,
         "log_file_name": log_file_name,
@@ -825,7 +872,9 @@ def main():
         "debugging_mrel": debugging_mrel,
         "mrel_debug_file": mrel_debug_file_name,
         "logging_agent_failures": logging_agent_failures,
-        "continue_from_log_path": continue_from_log_path
+        "continue_from_log_path": continue_from_log_path,
+        "log_agent": log_agent,
+        "log_agent_file_path": log_agent_file_path + base_log_name,
     }
 
     # run an estimation algorithm
