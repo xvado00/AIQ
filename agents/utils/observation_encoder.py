@@ -1,3 +1,11 @@
+
+#
+# Observation encoder for agents to be tested in the AIQ test
+#
+# Copyright Jan Štipl 2024
+# Released under GNU GPLv3
+#
+
 import numpy as np
 
 

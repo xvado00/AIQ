@@ -4,6 +4,7 @@
 #
 # Copyright Shane Legg 2011
 # Copyright Petr Zeman 2023
+# Copyright Jan Štipl 2024
 # Released under GNU GPLv3
 #
 
