@@ -18,6 +18,8 @@ from numpy  import ones
 import numpy as np
 import sys
 
+from .utils.observation_encoder import encode_observations_int
+
 
 class HLQ_l(Agent):
 
@@ -69,12 +71,10 @@ class HLQ_l(Agent):
     def perceive( self, observations, reward ):
 
         if len(observations) != self.obs_cells:
-            raise NameError("HLQ_l recieved wrong number of observations!")
+            raise NameError("HLQ_l received wrong number of observations!")
 
         # convert observations into a single number for the new state
-        nstate = 0
-        for i in range(self.obs_cells):
-           nstate = observations[i] * self.obs_symbols**i
+        nstate = encode_observations_int(observations, self.obs_symbols)
 
         # alias some things to make equations more managable
         gamma = self.gamma;  Lambda = self.Lambda

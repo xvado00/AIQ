@@ -14,6 +14,8 @@ import numpy as np
 from random import randint, randrange, random
 import sys
 
+from .utils.observation_encoder import encode_observations_int
+
 
 class Q_l(Agent):
 
@@ -65,12 +67,10 @@ class Q_l(Agent):
     def perceive( self, observations, reward ):
 
         if len(observations) != self.obs_cells:
-            raise NameError("Q_l recieved wrong number of observations!")
+            raise NameError("Q_l received wrong number of observations!")
 
         # convert observations into a single number for the new state
-        nstate = 0
-        for i in range(self.obs_cells):
-           nstate = observations[i] * self.obs_symbols**i
+        nstate = encode_observations_int(observations, self.obs_symbols)
 
         # set up alisas
         Q = self.Q_value
