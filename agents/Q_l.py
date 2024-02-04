@@ -77,8 +77,6 @@ class Q_l(Agent):
         E = self.E_trace
         gamma = self.gamma
 
-        #print Q
-
         # find an optimal action according to current Q values
         opt_action = self.random_optimal( Q[nstate] )
 

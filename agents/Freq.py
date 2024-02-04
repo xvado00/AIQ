@@ -47,12 +47,7 @@ class Freq(Agent):
     def perceive( self, observations, reward ):
 
         if len(observations) != self.obs_cells:
-            raise NameError("Q_l recieved wrong number of observations!")
-
-        # convert observations into a single number for the new state
-        nstate = 0
-        for i in range(self.obs_cells):
-           nstate = observations[i] * self.obs_symbols**i
+            raise NameError("Freq received wrong number of observations!")
 
         # set up alisas
         Total = self.total
