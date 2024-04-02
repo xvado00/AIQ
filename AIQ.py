@@ -841,7 +841,11 @@ def main():
                     + strftime("_%Y_%m%d_%H_%M_%S", localtime()) + ".log"
     # report logging
     if logging:
-        log_file_name = "./log/" + base_log_name
+        log_dir = "./log/"
+        if not os.path.isdir(log_dir):
+            os.mkdir(log_dir)
+
+        log_file_name =  log_dir + base_log_name
         with open(log_file_name, 'w') as log_file:
             for i in range(1, len(dist)):
                 log_file.write(str(dist[i]) + " ")
