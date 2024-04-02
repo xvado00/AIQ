@@ -8,12 +8,71 @@
 # Released under GNU GPLv3
 
 
-from numpy import ones, zeros, floor, array, sqrt, cov
+from numpy import ones, zeros, floor, array, sqrt, cov, mean
 
 import getopt, sys
 
 from os.path import basename
 import argparse
+import itertools
+
+from scipy import stats
+
+from AIQ_continue_from_log import load_log_file, LogResult
+
+
+def average_by_length(file_name:str):
+    """
+    1    28    89.0 +/-   0.0 SD   0.1
+    2   756    79.7 +/-   0.9 SD  12.4
+    3   194    76.4 +/-   2.1 SD  15.0
+    4    76    74.8 +/-   3.8 SD  17.1
+    5    20    89.0 +/-   0.0 SD   0.1
+    6    22    89.0 +/-   0.0 SD   0.1
+    7    66    82.9 +/-   2.1 SD   8.8
+    8   110    82.2 +/-   1.7 SD   9.3
+    9    28    90.7 +/-   0.3 SD   0.8
+    10    66    77.3 +/-   3.7 SD  15.4
+
+    <program length> <number of programs with given length> <AAR> <HCI> <SD>
+    AAR is the average earned reward
+    HCI is half of the confidence interval
+    SD is the standard deviation
+    """
+    _stratum_distribution, results = load_log_file(file_name)
+
+    # Check correct format
+    if any(x.program is None for x in results):
+        print(f"{file_name} Incorrect log format: program is not recorded, run AIQ with --log_agent_failures")
+        exit(1)
+
+    # Aggregate by program len
+    results.sort(key=lambda x: len(x.program))
+    groupings = itertools.groupby(results, lambda x: len(x.program))
+    for program_len, group in groupings:
+        group: list[LogResult] = list(group)
+        # Get rewards from positive and negative runs
+        rewards = array([x.reward_1 for x in group] + [x.reward_2 for x in group])
+
+        mean_reward = rewards.mean()
+
+        # Compute standard deviation
+        std_dev = rewards.std(ddof=1)
+
+        # Handle Positive and negative run having the same reward
+        if std_dev == 0:
+            half_conf_int = 0
+        else:
+            # Compute confidence intervals
+            confidence_interval = stats.norm.interval(0.95, loc=mean_reward, scale=std_dev)
+            # Same as 1.96 * std_dev / sqrt(len(rewards))
+            half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
+
+        # <program length> <number of programs with given length> <AAR> <HCI> <SD>
+        print(f"{program_len: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
+
+    print(f": {basename(file_name)}\n")
+
 
 def estimate(file, detailed):
     # load in the strata distribution
@@ -109,18 +168,21 @@ def main():
     parser.add_argument("--full", action="store_true",
                         help="Reports also the strata statistics")
     parser.add_argument("--by_program_length", action="store_true",
-                        help="Reports average accumulated rewards by program length")
+                        help="Reports average accumulated rewards by program length. "
+                             "Needs log format from AIQ --log_agent_failures")
     parser.add_argument("log_files", nargs="+", help="Path to log files")
     args = parser.parse_args()
 
-    detailed = args.full
     for file_name in args.log_files:
-        with open(file_name, 'r') as file:
-            estimate(file, detailed)
+        if args.by_program_length:
+            average_by_length(file_name)
 
-            print(":" + basename(file_name))
-            if detailed:
-                print()
+        else:
+            with open(file_name, 'r') as file:
+                estimate(file, args.full)
+                print(":" + basename(file_name))
+                if args.full:
+                    print()
 
 
 if __name__ == "__main__":
