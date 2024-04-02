@@ -13,7 +13,7 @@ from numpy import ones, zeros, floor, array, sqrt, cov
 import getopt, sys
 
 from os.path import basename
-
+import argparse
 
 def estimate(file, detailed):
     # load in the strata distribution
@@ -103,46 +103,25 @@ def estimate(file, detailed):
     return
 
 
-# print basic usage
-def usage():
-    print("python ComputeFromLog [--full] log_file_name [log_file_name ...]")
-
-
-# main function that just sets things up and then calls the sampler
-logging = False
-log_file = None
-
-
 def main():
-    global logging, log_file
+    parser = argparse.ArgumentParser(description="Compute AIQ from log file results, version 1.1")
 
-    detailed = False
+    parser.add_argument("--full", action="store_true",
+                        help="Reports also the strata statistics")
+    parser.add_argument("--by_program_length", action="store_true",
+                        help="Reports average accumulated rewards by program length")
+    parser.add_argument("log_files", nargs="+", help="Path to log files")
+    args = parser.parse_args()
 
-    print()
-    print("Compute AIQ from log file results, version 1.0")
-    print()
-    sys.argv.pop(0)
+    detailed = args.full
+    for file_name in args.log_files:
+        with open(file_name, 'r') as file:
+            estimate(file, detailed)
 
-    if len(sys.argv) == 0:
-        usage()
-        sys.exit()
-
-    if sys.argv[0] == "--full":
-        detailed = True
-        sys.argv.pop(0)
-
-    if len(sys.argv) == 0:
-        usage()
-        sys.exit()
-
-    for file_name in sys.argv:
-        file = open(file_name, 'r')
-        estimate(file, detailed)
-        print(":" + basename(file_name))
-        if detailed: print()
-        file.close()
+            print(":" + basename(file_name))
+            if detailed:
+                print()
 
 
 if __name__ == "__main__":
     main()
-
