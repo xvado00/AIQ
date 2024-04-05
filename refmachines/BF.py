@@ -9,16 +9,11 @@
 
 
 import random
-import sys
 import re
 
 from refmachines import ReferenceMachine
-from numpy import zeros, ones, array, linspace
-from scipy import stats, floor, sqrt
-# from string import replace
 
-
-INSTRUCTIONS = ['<','>','+','-',',','.','[',']','#', '%' ]
+INSTRUCTIONS = ['<', '>', '+', '-', ',', '.', '[', ']', '#', '%']
 
 
 class BF(ReferenceMachine.ReferenceMachine):
