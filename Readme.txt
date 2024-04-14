@@ -95,14 +95,14 @@ Arguments:
 
 --log  Switch on output logging
 
---log_agent_failures	Switch on logging of possible agent failures
+--log_agent_failures Switch on logging of possible agent failures
 	and on what program.
 
---verbose_log_el  Swith on logging intermediate results every 1000
+--verbose_log_el  Switch on logging intermediate results every 1000
   interactions, needs log-el directory.
 
---multi_round_el=method,param1,param2,...  Swith on multi-round EL
-  convergence optimalization using selected method and parameters:
+--multi_round_el=method,param1,param2,...  Switch on multi-round EL
+  convergence optimization using selected method and parameters:
 	(this technique increases the consumption of RAM considerably)
     Delta,Difference,EL_to_evaluate  absolute difference of AIQ
 		  is less then Difference, computed every EL_to_evaluate nr.
@@ -120,7 +120,7 @@ Arguments:
 	(can be used to increase sample size or to salvage results of
 	incomplete test runs depending on the -s value provided).
 
---log_interactions Logs all agent <--> evniroment intercations to a log file.
+--log_interactions Logs all agent <--> environment interactions to a log file.
     Each program run has it's own log file.
 
 --log_agent Logs agent logs from agent.get_log() to a log file.
