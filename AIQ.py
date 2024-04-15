@@ -20,6 +20,7 @@ import fcntl
 from datetime import datetime
 from hashlib import sha256
 from math import isnan
+from multiprocessing import get_context
 from multiprocessing import Pool
 from time import sleep, localtime, strftime
 from typing import TextIO
@@ -492,10 +493,12 @@ def run_agent(I, M, Y, agent_call, config, disc_rate, episode_length, refm_call,
     results = []
     # Run normally
     # create parallel computation pool
+    # Fix multiprocessing issues ocurring on some Linux setups
+    # https://pythonspeed.com/articles/python-multiprocessing/
     if threads == 0:
-        pool = Pool()  # default threads = core count
+        pool = get_context("spawn").Pool()  # default threads = core count
     else:
-        pool = Pool(threads)
+        pool = get_context("spawn").Pool(threads)
     # add samples to processing pool (we skip stratum 0 which is passive)
     # We choose number of  programs here according to M[i]
     for i in range(1, I):
