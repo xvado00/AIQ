@@ -258,18 +258,18 @@ class BF(ReferenceMachine.ReferenceMachine):
 
         # the original patterns by Legg and Vennes
         replace_patterns = [
-                ['\+\-',''], ['\-\+',''], ['<>',''], ['><',''], ['\[\]','']
+                [r'\+\-',''], [r'\-\+',''], [r'<>',''], [r'><',''], [r'\[\]','']
                 ]
         # the new patterns by Vadinsky
         if improved_optimization:
             replace_patterns += [
-                ['%[\+\-]+','%'], #incrementation/decrementation of random symbol
-                ['[%\+\-]+%','%'], #overwritten by a random symbol
-                ['[%\+\-]+,',','], #overwritten by a read action
-                ['\[[\+\-%]+\]%','%'], #zeroing overwritten by a random symbol
-                ['\[[\+\-%]+\],',','], #zeroing overwritten by a read action
-                ['\[[\+\-\%][\+\-%]+\]','[+]'], #multiple instructions in zeroing loop
-                ['%\[\+\]','[+]'] #zeroing a random symbol
+                [r'%[\+\-]+','%'], #incrementation/decrementation of random symbol
+                [r'[%\+\-]+%','%'], #overwritten by a random symbol
+                [r'[%\+\-]+,',','], #overwritten by a read action
+                [r'\[[\+\-%]+\]%','%'], #zeroing overwritten by a random symbol
+                [r'\[[\+\-%]+\],',','], #zeroing overwritten by a read action
+                [r'\[[\+\-\%][\+\-%]+\]','[+]'], #multiple instructions in zeroing loop
+                [r'%\[\+\]','[+]'] #zeroing a random symbol
                 ]
 
         pattern_replaced = True
