@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 
 def encode_observations_n_hot(observations, obs_cells, obs_symbols) -> np.ndarray:
@@ -52,6 +51,7 @@ def encode_observations_int(observations: list[int], obs_symbols: int) -> int:
 
 
 def test_more_obs():
+    import torch
     # BF 5,2
     observations = [3, 2]
     obs_cells = 2
