@@ -4,7 +4,7 @@
 # Copyright Shane Legg 2011
 # Copyright Ondřej Vadinský 2018, 2023
 # Copyright Petr Zeman 2023
-# Copyright Jan Štipl 2023
+# Copyright Jan Štipl 2023, 2024
 # Released under GNU GPLv3
 
 import argparse
