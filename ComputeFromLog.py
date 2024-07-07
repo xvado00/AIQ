@@ -21,35 +21,36 @@ from scipy import stats
 from AIQ_continue_from_log import load_log_file, LogResult
 
 
-def average_by_length(file_name:str):
+def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
     """
-    1    28    89.0 +/-   0.0 SD   0.1
-    2   756    79.7 +/-   0.9 SD  12.4
-    3   194    76.4 +/-   2.1 SD  15.0
-    4    76    74.8 +/-   3.8 SD  17.1
-    5    20    89.0 +/-   0.0 SD   0.1
-    6    22    89.0 +/-   0.0 SD   0.1
-    7    66    82.9 +/-   2.1 SD   8.8
-    8   110    82.2 +/-   1.7 SD   9.3
-    9    28    90.7 +/-   0.3 SD   0.8
-    10    66    77.3 +/-   3.7 SD  15.4
+    Calculates AAR, HCI, SD for groupings with given group key
+    Default behavior groups on program length
 
-    <program length> <number of programs with given length> <AAR> <HCI> <SD>
     AAR is the average earned reward
-    HCI is half of the confidence interval
+    HCI half of the confidence interval
     SD is the standard deviation
+
+    Print format:
+    <group_key> <number of programs with given length> <AAR> <HCI> <SD>
+
+    :param file_name: Path to log file
+    :param group_key:
+        lambda x: x.stratum_number # by stratum
+        lambda x: len(x.program)   # average_by_length
+    :return:
     """
+
     _stratum_distribution, results = load_log_file(file_name)
 
-    # Check correct format
-    if any(x.program is None for x in results):
-        print(f"{file_name} Incorrect log format: program is not recorded, run AIQ with --log_agent_failures")
-        exit(1)
+    try:
+        # Aggregate by group key
+        results.sort(key=group_key)
+    except TypeError as ex:
+        print(f"{file_name} Incorrect log format: group_key is not recorded, run AIQ with --log_agent_failures")
+        raise ex
 
-    # Aggregate by program len
-    results.sort(key=lambda x: len(x.program))
-    groupings = itertools.groupby(results, lambda x: len(x.program))
-    for program_len, group in groupings:
+    groupings = itertools.groupby(results, group_key)
+    for key, group in groupings:
         group: list[LogResult] = list(group)
         # Get rewards from positive and negative runs
         rewards = array([x.reward_1 for x in group] + [x.reward_2 for x in group])
@@ -69,7 +70,7 @@ def average_by_length(file_name:str):
             half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
 
         # <program length> <number of programs with given length> <AAR> <HCI> <SD>
-        print(f"{program_len: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
+        print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
 
     print(f": {basename(file_name)}\n")
 
@@ -175,7 +176,7 @@ def main():
 
     for file_name in args.log_files:
         if args.by_program_length:
-            average_by_length(file_name)
+            average_by_key(file_name, group_key=lambda x: len(x.program))
 
         else:
             with open(file_name, 'r') as file:
