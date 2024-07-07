@@ -21,7 +21,7 @@ def estimate(file, detailed):
     dist_line += file.readline().split()
     dist = array(dist_line, float)
 
-    p = dist  # probabilyt of a program being in each strata
+    p = dist  # probability of a program being in each strata
     I = len(dist)  # number of strata, including passive
     A = I - 1  # active strata
 
