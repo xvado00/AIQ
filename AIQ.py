@@ -331,7 +331,7 @@ def stratified_estimator(refm_call, agent_call, episode_length, disc_rate, sampl
             break
 
     print("Sample size steps:")
-    print(N)
+    print([float(n) for n in N])
 
     K = len(N)  # number of adaptive stratification stages
     Y = [[] for _ in range(I)]  # empty collection of samples divided up by stratum
