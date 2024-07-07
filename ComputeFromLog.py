@@ -7,7 +7,7 @@
 # Copyright Jan Štipl 2023
 # Released under GNU GPLv3
 
-
+import numpy as np
 from numpy import ones, zeros, floor, array, sqrt, cov, mean
 
 import getopt, sys
@@ -19,6 +19,34 @@ import itertools
 from scipy import stats
 
 from AIQ_continue_from_log import load_log_file, LogResult
+
+
+def antithetic_std(sample1: np.ndarray, sample2: np.ndarray) -> float:
+    """
+    This formula computes more accurate std thanks to stratified sampling,
+    common random numbers, and antithetic runs in AIQ.
+    Can probably be only used for grouping by strata
+    Formula can be found in original Legg and Veness's paper
+
+    :param sample1: positive antithetic runs
+    :param sample2: negative antithetic runs
+    :return:
+    """
+    s1 = sample1.std(ddof=1)  # 1 degree of freedom
+    s2 = sample2.std(ddof=1)  # 1 degree of freedom
+    covariance = cov(sample1, sample2)[0, 1]  # default is 1 df
+
+    var = 0.25 * (s1 * s1 + s2 * s2 + 2.0 * covariance)
+
+    # Covariance can be negative 0 -> sqrt from negative -> NaN
+    #   Cov in general can be negative, but it didn't happen in testing
+    #   Wrong calculation of cov results in it being not quite zero instead of zero
+    #   Will fix when the problem occurs
+    if abs(var) <= 1e-10:
+        var = 0.0
+
+    std = sqrt(var)
+    return std
 
 
 def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
@@ -113,20 +141,7 @@ def estimate(file, detailed):
             sample1 = YA[:, 0]  # positive antithetic runs
             sample2 = YA[:, 1]  # negative antithetic runs
 
-            s1 = sample1.std(ddof=1)  # 1 degree of freedom
-            s2 = sample2.std(ddof=1)  # 1 degree of freedom
-            covariance = cov(sample1, sample2)[0, 1]  # default is 1 df
-
-            var = 0.25 * (s1 * s1 + s2 * s2 + 2.0 * covariance)
-
-            # Covariance can be negative 0 -> sqrt from negative -> NaN
-            #   Cov in general can be negative, but it didn't happen in testing
-            #   Wrong calculation of cov results in it being not quite zero instead of zero
-            #   Will fix when the problem occurs
-            if abs(var) <= 1e-10:
-                var = 0.0
-
-            s[i] = sqrt(var)
+            s[i] = antithetic_std(sample1, sample2)
         else:
             s[i] = 1.0
 
