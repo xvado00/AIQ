@@ -7,15 +7,12 @@
 # Copyright Jan Štipl 2023
 # Released under GNU GPLv3
 
-import numpy as np
-from numpy import ones, zeros, floor, array, sqrt, cov, mean
-
-import getopt, sys
-
-from os.path import basename
 import argparse
 import itertools
+from os.path import basename
 
+import numpy as np
+from numpy import ones, array, sqrt, cov
 from scipy import stats
 
 from AIQ_continue_from_log import load_log_file, LogResult
