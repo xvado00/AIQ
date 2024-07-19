@@ -112,10 +112,15 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
             # Same as 1.96 * std_dev / sqrt(len(rewards))
             half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
 
-        # <program length> <number of programs with given length> <AAR> <HCI> <SD>
         print_missing_key_values(prev_key, key)
         prev_key = key
-        print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
+        if len(rewards) < 4:
+            # Don't report half CI with less than 4 samples
+            # program length> <number of programs with given length> <AAR>
+            print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f}")
+        else:
+            # <program length> <number of programs with given length> <AAR> <HCI> <SD>
+            print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
 
     print(f": {basename(file_name)}\n")
 
