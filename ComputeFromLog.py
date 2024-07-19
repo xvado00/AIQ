@@ -122,7 +122,7 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
             # <program length> <number of programs with given length> <AAR> <HCI> <SD>
             print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
 
-    print(f": {basename(file_name)}\n")
+    print(f": {basename(file_name)}")
 
 
 def estimate(file, detailed):
@@ -214,6 +214,7 @@ def main():
     for file_name in args.log_files:
         if args.by_program_length:
             average_by_key(file_name, group_key=lambda x: len(x.program))
+            print()
 
         else:
             with open(file_name, 'r') as file:
