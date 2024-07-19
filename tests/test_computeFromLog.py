@@ -3,7 +3,7 @@ import re
 import tempfile
 from contextlib import redirect_stdout
 
-from ComputeFromLog import average_by_key, estimate
+from ComputeFromLog import average_by_key, estimate, print_average_by_key_results
 
 
 def test_average_by_key_key_gap():
@@ -24,11 +24,12 @@ def test_average_by_key_key_gap():
         tmp.write(aiq_data.encode("utf-8"))
         # Go back to start
         tmp.seek(0)
+        results = average_by_key(tmp.name, group_key)
         with redirect_stdout(output):
-            average_by_key(tmp.name, group_key)
+            print_average_by_key_results(results)
 
     # Trim print of the file (file name is random)
-    output = "\n".join(output.getvalue().splitlines()[:-1])
+    output = "\n".join(output.getvalue().splitlines())
 
     expected = """  1   6    -0.1 +/-  0.7 SD  0.8
   2   2    -0.0
@@ -65,8 +66,9 @@ def test_average_by_key_antithetic_std():
 
         # Go back to start
         tmp.seek(0)
+        results = average_by_key(tmp.name, group_key)
         with redirect_stdout(output):
-            average_by_key(tmp.name, group_key)
+            print_average_by_key_results(results)
 
         # Go back to start
         tmp.seek(0)
@@ -103,9 +105,9 @@ def test_average_by_key():
 
         # Go back to start
         tmp.seek(0)
+        results = average_by_key(tmp.name, group_key)
         with redirect_stdout(output):
-            average_by_key(tmp.name, group_key)
-
+            print_average_by_key_results(results)
         # Go back to start
         tmp.seek(0)
         with redirect_stdout(expected):
@@ -116,7 +118,7 @@ def test_average_by_key():
     expected = re.sub(r" +", " ", expected.getvalue())
 
     # Trim difference in the output ending
-    output = "\n".join(output.splitlines()[:-1])
+    output = "\n".join(output.splitlines())
     expected = "\n".join(expected.splitlines()[:-2])
     print()
     print(output)

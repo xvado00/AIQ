@@ -8,8 +8,10 @@
 # Released under GNU GPLv3
 
 import argparse
+import dataclasses
 import itertools
 from os.path import basename
+from typing import Any
 
 import numpy as np
 from numpy import ones, array, sqrt, cov
@@ -60,7 +62,44 @@ def print_missing_key_values(previous_key: int, current_key: int):
         print(f"{key:>3} {0:>3} {missing_value:^7} +/- {missing_value:^4.1} SD {missing_value:^4.1}")
 
 
-def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
+@dataclasses.dataclass
+class AverageByKeyResult:
+    """
+    AAR is the average earned reward
+    HCI half of the confidence interval
+    SD is the standard deviation
+    """
+    group_key: Any
+    rewards_len: int
+    AAR: float
+    HCI: float
+    SD: float
+
+
+def print_average_by_key_results(results: list[AverageByKeyResult]) -> None:
+    """
+    Print format:
+    <group_key> <number of programs with given length> <AAR> <HCI> <SD>
+
+    :param results:
+    :return:
+    """
+    prev_key = results[0].group_key
+    for result in results:
+
+        print_missing_key_values(prev_key, result.group_key)
+        prev_key = result.group_key
+        if result.rewards_len < 4:
+            # Don't report half CI with less than 4 samples
+            # program length> <number of programs with given length> <AAR>
+            print(f"{result.group_key: >3} {result.rewards_len: >3} {result.AAR:>7.1f}")
+        else:
+            # <program length> <number of programs with given length> <AAR> <HCI> <SD>
+            print(f"{result.group_key: >3} {result.rewards_len: >3} {result.AAR:>7.1f} "
+                  f"+/- {result.HCI:>4.1f} SD {result.SD:>4.1f}")
+
+
+def average_by_key(file_name: str, group_key=lambda x: len(x.program)) -> list[AverageByKeyResult]:
     """
     Calculates AAR, HCI, SD for groupings with given group key
     Default behavior groups on program length
@@ -68,9 +107,6 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
     AAR is the average earned reward
     HCI half of the confidence interval
     SD is the standard deviation
-
-    Print format:
-    <group_key> <number of programs with given length> <AAR> <HCI> <SD>
 
     :param file_name: Path to log file
     :param group_key:
@@ -88,11 +124,9 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
         print(f"{file_name} Incorrect log format: group_key is not recorded, run AIQ with --log_agent_failures")
         raise ex
 
+    result_stats = []
     groupings = itertools.groupby(results, group_key)
-    prev_key = None
     for key, group in groupings:
-        if prev_key is None:
-            prev_key = key
         group: list[LogResult] = list(group)
 
         # Get rewards from positive and negative runs
@@ -112,17 +146,9 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
             # Same as 1.96 * std_dev / sqrt(len(rewards))
             half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
 
-        print_missing_key_values(prev_key, key)
-        prev_key = key
-        if len(rewards) < 4:
-            # Don't report half CI with less than 4 samples
-            # program length> <number of programs with given length> <AAR>
-            print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f}")
-        else:
-            # <program length> <number of programs with given length> <AAR> <HCI> <SD>
-            print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
+        result_stats.append(AverageByKeyResult(key, len(rewards), mean_reward, half_conf_int, std_dev))
 
-    print(f": {basename(file_name)}")
+    return result_stats
 
 
 def estimate(file, detailed):
@@ -213,7 +239,9 @@ def main():
 
     for file_name in args.log_files:
         if args.by_program_length:
-            average_by_key(file_name, group_key=lambda x: len(x.program))
+            results = average_by_key(file_name, group_key=lambda x: len(x.program))
+            print_average_by_key_results(results)
+            print(f":{basename(file_name)}")
             print()
 
         else:
