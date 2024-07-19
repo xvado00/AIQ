@@ -46,6 +46,20 @@ def antithetic_std(sample1: np.ndarray, sample2: np.ndarray) -> float:
     return std
 
 
+def print_missing_key_values(previous_key: int, current_key: int):
+    """
+    Adds dummy prints for missing key values.
+    Will be useful for later matching for analysis purposes.
+    :param previous_key:
+    :param current_key:
+    :return:
+    """
+    missing_value = "-"
+    for key in range(previous_key + 1, current_key):
+        # <program length> <number of programs with given length> <AAR> <HCI> <SD>
+        print(f"{key:>3} {0:>3} {missing_value:^7} +/- {missing_value:^4.1} SD {missing_value:^4.1}")
+
+
 def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
     """
     Calculates AAR, HCI, SD for groupings with given group key
@@ -75,8 +89,12 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
         raise ex
 
     groupings = itertools.groupby(results, group_key)
+    prev_key = None
     for key, group in groupings:
+        if prev_key is None:
+            prev_key = key
         group: list[LogResult] = list(group)
+
         # Get rewards from positive and negative runs
         rewards = array([x.reward_1 for x in group] + [x.reward_2 for x in group])
 
@@ -95,6 +113,8 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)):
             half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
 
         # <program length> <number of programs with given length> <AAR> <HCI> <SD>
+        print_missing_key_values(prev_key, key)
+        prev_key = key
         print(f"{key: >3} {len(rewards): >3} {mean_reward:>7.1f} +/- {half_conf_int:>4.1f} SD {std_dev:>4.1f}")
 
     print(f": {basename(file_name)}\n")
