@@ -76,6 +76,25 @@ class AverageByKeyResult:
     SD: float
 
 
+def print_bucketed_results(results: list[AverageByKeyResult], bucket_size: int) -> None:
+    """
+    Used for histogram.
+    Print format:
+    [group_key1, group_key2, ...] <sum of programs in bucket> <average of AAR in bucket weighted by number of records for each group key>
+
+    :param results:
+    :param bucket_size: Size of buckets aggregated by group_key
+    :return:
+    """
+    results.sort(key=lambda x: x.group_key)
+    for result_bucket in itertools.batched(results, bucket_size):
+        group_keys = [x.group_key for x in result_bucket]
+        agg_rewards_len = sum(x.rewards_len for x in result_bucket)
+        agg_aar = np.average([x.AAR for x in result_bucket], weights=[x.rewards_len for x in result_bucket])
+
+        print(f"{group_keys} {agg_rewards_len: >3} {agg_aar:>7.1f}")
+
+
 def print_average_by_key_results(results: list[AverageByKeyResult]) -> None:
     """
     Print format:
@@ -234,13 +253,24 @@ def main():
     parser.add_argument("--by_program_length", action="store_true",
                         help="Reports average accumulated rewards by program length. "
                              "Needs log format from AIQ --log_agent_failures")
+    parser.add_argument("--bucket_size", default=1, type=int,
+                        help="Bucket size for aggregation of program lengths.")
     parser.add_argument("log_files", nargs="+", help="Path to log files")
     args = parser.parse_args()
+    if args.bucket_size != 1 and not args.by_program_length:
+        parser.error("--bucket_size can only be used with --by_program_length")
+    if args.bucket_size < 1:
+        parser.error(f"Bucket size has to be >= 1 ({args.bucket_size = })")
 
     for file_name in args.log_files:
         if args.by_program_length:
             results = average_by_key(file_name, group_key=lambda x: len(x.program))
-            print_average_by_key_results(results)
+
+            if args.bucket_size == 1:
+                print_average_by_key_results(results)
+            else:
+                print_bucketed_results(results, args.bucket_size)
+
             print(f":{basename(file_name)}")
             print()
 

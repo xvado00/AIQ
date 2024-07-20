@@ -2,8 +2,9 @@ import io
 import re
 import tempfile
 from contextlib import redirect_stdout
+from statistics import mean
 
-from ComputeFromLog import average_by_key, estimate, print_average_by_key_results
+from ComputeFromLog import average_by_key, estimate, print_average_by_key_results, print_bucketed_results
 
 
 def test_average_by_key_key_gap():
@@ -126,3 +127,60 @@ def test_average_by_key():
     print(expected)
 
     assert output == expected
+
+
+def test_print_bucketed_results():
+    aiq_data = """0.20683000000013646 0.11868500000004831 0.027855000000003193 0.006694999999999811 0.02275500000000163 0.021925000000001377
+2024_0707_11:41:14 1 0.205 0.59 False False ,.>>%#
+2024_0707_11:41:14 1 0.66 -0.375 False False ,.+>[-.+]++#
+2024_0707_11:41:14 1 -1.645 -0.135 False False <,.>-[.,]%#
+2024_0707_11:41:14 2 -0.54 0.455 False False %>.,<#
+2024_0707_11:41:14 6 -0.15 -1.36 False False <,-.%.%.#
+2024_0707_11:41:15 6 -0.14 -0.68 False False ,-.-<<<%>#"""
+    group_key = lambda x: x.stratum_number
+    output = io.StringIO()
+
+    bucket_size = 2
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        tmp.write(aiq_data.encode("utf-8"))
+        # Go back to start
+        tmp.seek(0)
+        results = average_by_key(tmp.name, group_key)
+
+        with redirect_stdout(output):
+            print_bucketed_results(results, bucket_size)
+
+    expected = """[1, 2]  8    -0.1
+[6]  4    -0.6
+"""
+
+    assert output.getvalue() == expected
+
+
+def test_print_bucketed_weighted_average():
+    aiq_data = """0.20683000000013646 0.11868500000004831 0.027855000000003193 0.006694999999999811 0.02275500000000163 0.021925000000001377
+2024_0707_11:41:14 1 0.0 4.0 False False ,.>>%#
+2024_0707_11:41:14 1 0.0 4.0 False False ,.+>[-.+]++#
+2024_0707_11:41:14 1 0.0 4.0 False False <,.>-[.,]%#
+2024_0707_11:41:14 2 1.0 1.0 False False %>.,<#
+2024_0707_11:41:14 6 1.0 1.0 False False <,-.%.%.#
+2024_0707_11:41:15 6 1.0 1.0 False False ,-.-<<<%>#"""
+    group_key = lambda x: x.stratum_number
+    output = io.StringIO()
+
+    bucket_size = 3
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        tmp.write(aiq_data.encode("utf-8"))
+        # Go back to start
+        tmp.seek(0)
+        results = average_by_key(tmp.name, group_key)
+
+        with redirect_stdout(output):
+            print_bucketed_results(results, bucket_size)
+    print()
+    print(output.getvalue())
+
+    expected = f"[1, 2, 6]  12     {mean([2.0, 2.0, 2.0, 1.0, 1.0, 1.0])}\n"
+    assert output.getvalue() == expected
