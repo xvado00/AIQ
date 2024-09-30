@@ -18,23 +18,30 @@ import  numpy as np
 
 from random import randint, randrange, random
 
+from .utils.epsilon_decay import EpsilonDecayMixin
 
-class Freq(Agent):
 
-    def __init__( self, refm, disc_rate, epsilon ):
+class Freq(Agent, EpsilonDecayMixin):
+
+    def __init__( self, refm, disc_rate, min_epsilon=0.05, episodes_till_min_decay=0 ):
+        """
+        :param refm:
+        :param disc_rate:
+        :param episodes_till_min_decay: Steps over which epsilon decays to min_epsilon; 0 turns off decay
+        :param min_epsilon: Minimum value of epsilon for exploration-exploitation trade-off
+        """
 
         Agent.__init__( self, refm, disc_rate )
+        EpsilonDecayMixin.__init__( self, min_epsilon=min_epsilon, episodes_till_min_decay=episodes_till_min_decay )
         
         self.obs_symbols = refm.getNumObsSyms()
         self.obs_cells   = refm.getNumObsCells()
 
-        self.epsilon = epsilon
-        
         self.reset()
 
 
     def reset( self ):
-
+        EpsilonDecayMixin.reset(self)
         self.action = 0
 
         self.total = zeros( (self.num_actions) )
@@ -42,7 +49,8 @@ class Freq(Agent):
 
 
     def __str__( self ):
-        return "Freq(" + str(self.epsilon) + ")"
+        return (f"Freq({self.min_epsilon},"
+                f"{self.episodes_till_min_decay})")
 
 
     def perceive( self, observations, reward ):
@@ -74,6 +82,7 @@ class Freq(Agent):
  
         # update the old action
         self.action = naction
+        self.decay_epsilon_linear()
 
         return naction
 
