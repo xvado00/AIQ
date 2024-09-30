@@ -19,22 +19,22 @@ from numpy  import ones
 import numpy as np
 import sys
 
+from .utils.epsilon_decay import EpsilonDecayMixin
 from .utils.observation_encoder import encode_observations_int
 
 
-class HLQ_l(Agent):
+class HLQ_l(Agent, EpsilonDecayMixin):
 
-    def __init__( self, refm, disc_rate, sel_mode, init_Q, Lambda, epsilon=0, gamma=0 ):
+    def __init__( self, refm, disc_rate, sel_mode, init_Q, Lambda, min_epsilon=0.05, episodes_till_min_decay=0, gamma=0 ):
 
         Agent.__init__( self, refm, disc_rate )
-
+        EpsilonDecayMixin.__init__(self, min_epsilon=min_epsilon, episodes_till_min_decay=episodes_till_min_decay)
         self.num_states = refm.getNumObs() # assuming that states = observations
         self.obs_symbols = refm.getNumObsSyms()
         self.obs_cells   = refm.getNumObsCells()
         self.sel_mode   = sel_mode
         self.init_Q     = init_Q
         self.Lambda     = Lambda
-        self.epsilon    = epsilon
 
         # if the internal discount rate isn't set, use the environment value
         if gamma == 0:
@@ -53,7 +53,7 @@ class HLQ_l(Agent):
 
 
     def reset( self ):
-        
+        EpsilonDecayMixin.reset(self)
         self.state  = 0
         self.action = 0
 
@@ -64,9 +64,13 @@ class HLQ_l(Agent):
 
 
     def __str__( self ):
-        return "H_l(" + str(self.sel_mode) + "," + \
-               str(self.init_Q) + "," + str(self.Lambda) + "," \
-               + str(self.epsilon) + "," + str(self.gamma) + ")"
+        return (f"H_l({self.sel_mode},"
+                f"{self.init_Q},"
+                f"{self.Lambda},"
+                f"{self.min_epsilon},"
+                f"{self.episodes_till_min_decay},"
+                f"{self.gamma})")
+
 
 
     def perceive( self, observations, reward ):
@@ -136,6 +140,7 @@ class HLQ_l(Agent):
         # update the old action and state
         self.state  = nstate
         self.action = naction
+        self.decay_epsilon_linear()
 
         return naction
 
