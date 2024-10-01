@@ -177,6 +177,7 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
             record = {
                 "time_stamp": time_str,
                 "rflip": rflip,
+                "stratum": stratum,
                 "program": program,
                 "agent_log": agent.get_logs()
             }
