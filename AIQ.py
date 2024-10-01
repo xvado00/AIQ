@@ -15,11 +15,14 @@ import getopt
 import json
 import os
 import sys
+from contextlib import contextmanager
+import fcntl
 from datetime import datetime
 from hashlib import sha256
 from math import isnan
 from multiprocessing import Pool
 from time import sleep, localtime, strftime
+from typing import TextIO
 
 import numpy as np
 from numpy import ones, zeros, floor, array, sqrt, log, ceil, cov
@@ -43,6 +46,22 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
+
+
+@contextmanager
+def file_lock(file_descriptor: TextIO):
+    """
+    Contex manager for locking access to a file
+    Prevents mangled logs caused by multiprocessing
+    Used in logging
+    :param file_descriptor:
+    :return:
+    """
+    try:
+        fcntl.flock(file_descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(file_descriptor, fcntl.LOCK_UN)
 
 
 # Test an agent by performing both positive and negative reward runs in order
@@ -161,8 +180,9 @@ def _test_agent(refm_call, agent_call, rflip, episode_length,
                 "program": program,
                 "agent_log": agent.get_logs()
             }
-            json.dump(record, agent_log, cls=NpEncoder)
-            agent_log.write("\n")
+            with file_lock(agent_log):
+                json.dump(record, agent_log, cls=NpEncoder)
+                agent_log.write("\n")
 
     # save agent <-> env interactions
     if config["log_interactions"]:
