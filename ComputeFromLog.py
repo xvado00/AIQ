@@ -86,13 +86,28 @@ def print_bucketed_results(results: list[AverageByKeyResult], bucket_size: int) 
     :param bucket_size: Size of buckets aggregated by group_key
     :return:
     """
-    results.sort(key=lambda x: x.group_key)
-    for result_bucket in itertools.batched(results, bucket_size):
-        group_keys = [x.group_key for x in result_bucket]
+    assert all(isinstance(x.group_key, int) for x in results), f"Group keys are not integers: {results}"
+    result_dict = {}
+    for res in results:
+        group = result_dict.get(res.group_key, [])
+        group.append(res)
+        result_dict[res.group_key] = group
+
+    # Create intervals for the bucket values
+    min_val = min(results, key=lambda x: x.group_key).group_key
+    max_val = max(results, key=lambda x: x.group_key).group_key
+    for result_values in itertools.batched(range(min_val, max_val + 1), bucket_size):
+        result_bucket = []
+        for x in result_values:
+            result_bucket.extend(result_dict.get(x, []))
+
+        if len(result_bucket) == 0:
+            print(f"{list(result_values)} {"-": >3} {"-":>7}")
+            continue
+
         agg_rewards_len = sum(x.rewards_len for x in result_bucket)
         agg_aar = np.average([x.AAR for x in result_bucket], weights=[x.rewards_len for x in result_bucket])
-
-        print(f"{group_keys} {agg_rewards_len: >3} {agg_aar:>7.1f}")
+        print(f"{list(result_values)} {agg_rewards_len: >3} {agg_aar:>7.1f}")
 
 
 def print_average_by_key_results(results: list[AverageByKeyResult]) -> None:

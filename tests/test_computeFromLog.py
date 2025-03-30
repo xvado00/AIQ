@@ -184,3 +184,31 @@ def test_print_bucketed_weighted_average():
 
     expected = f"[1, 2, 6]  12     {mean([2.0, 2.0, 2.0, 1.0, 1.0, 1.0])}\n"
     assert output.getvalue() == expected
+
+
+def test_print_bucketed_by_program_len():
+    aiq_data = """0.20683000000013646 0.11868500000004831 0.027855000000003193 0.006694999999999811 0.02275500000000163 0.021925000000001377
+2024_0707_11:41:14 1 0.205 0.59 False False 1
+2024_0707_11:41:14 1 0.66 -0.375 False False 22
+2024_0707_11:41:14 1 -1.645 -0.135 False False 22
+2024_0707_11:41:14 2 -0.54 0.455 False False 22
+2024_0707_11:41:14 6 -0.15 -1.36 False False 55555
+2024_0707_11:41:15 6 -0.14 -0.68 False False 55555"""
+    group_key = lambda x: len(x.program)
+    output = io.StringIO()
+
+    bucket_size = 2
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        tmp.write(aiq_data.encode("utf-8"))
+        # Go back to start
+        tmp.seek(0)
+        results = average_by_key(tmp.name, group_key)
+
+        with redirect_stdout(output):
+            print_bucketed_results(results, bucket_size)
+
+    expected = ("[1, 2]   8    -0.1\n"
+                "[3, 4]   -       -\n"
+                "[5]   4    -0.6\n")
+    assert output.getvalue() == expected
