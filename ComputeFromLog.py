@@ -99,7 +99,7 @@ def print_bucketed_results(results: list[AverageByKeyResult], bucket_size: int) 
         result_dict[res.group_key] = group
 
     # Create intervals for the bucket values
-    min_val = min(results, key=lambda x: x.group_key).group_key
+    min_val = 1
     max_val = max(results, key=lambda x: x.group_key).group_key
     for result_values in itertools.batched(range(min_val, max_val + 1), bucket_size):
         result_bucket = []
