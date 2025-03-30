@@ -27,7 +27,7 @@ def test_average_by_key_key_gap():
         tmp.seek(0)
         results = average_by_key(tmp.name, group_key)
         with redirect_stdout(output):
-            print_average_by_key_results(results)
+            print_average_by_key_results(results, print_missing=True)
 
     # Trim print of the file (file name is random)
     output = "\n".join(output.getvalue().splitlines())
@@ -69,7 +69,7 @@ def test_average_by_key_antithetic_std():
         tmp.seek(0)
         results = average_by_key(tmp.name, group_key)
         with redirect_stdout(output):
-            print_average_by_key_results(results)
+            print_average_by_key_results(results, print_missing=True)
 
         # Go back to start
         tmp.seek(0)
@@ -108,7 +108,7 @@ def test_average_by_key():
         tmp.seek(0)
         results = average_by_key(tmp.name, group_key)
         with redirect_stdout(output):
-            print_average_by_key_results(results)
+            print_average_by_key_results(results, print_missing=True)
         # Go back to start
         tmp.seek(0)
         with redirect_stdout(expected):
@@ -151,9 +151,11 @@ def test_print_bucketed_results():
         with redirect_stdout(output):
             print_bucketed_results(results, bucket_size)
 
-    expected = """[1, 2]  8    -0.1
-[6]  4    -0.6
-"""
+    expected = (
+        "[1, 2]   8    -0.1 +/-  0.5 SD  0.8\n"
+        "[3, 4]   0    -    +/-  -   SD  -  \n"
+        "[5, 6]   4    -0.6 +/-  0.6 SD  0.6\n"
+    )
 
     assert output.getvalue() == expected
 
@@ -182,7 +184,9 @@ def test_print_bucketed_weighted_average():
     print()
     print(output.getvalue())
 
-    expected = f"[1, 2, 6]  12     {mean([2.0, 2.0, 2.0, 1.0, 1.0, 1.0])}\n"
+    expected = (f"[1, 2, 3]   8     {mean([0.0, 4.0, 0.0, 4.0, 0.0, 4.0, 1.0, 1.0]):.1f} +/-  1.3 SD  1.9\n"
+                f"[4, 5, 6]   4     {mean([1.0, 1.0, 1.0, 1.0])} +/-  0.0 SD  0.0\n")
+
     assert output.getvalue() == expected
 
 
