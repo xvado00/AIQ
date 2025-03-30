@@ -166,24 +166,28 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)) -> list[A
         # Get rewards from positive and negative runs
         rewards = array([x.reward_1 for x in group] + [x.reward_2 for x in group])
 
-        mean_reward = rewards.mean()
-
-        # Compute standard deviation
-        std_dev = rewards.std(ddof=1)
-
-        # Handle Positive and negative run having the same reward
-        if std_dev == 0:
-            half_conf_int = 0
-        else:
-            # Compute confidence intervals
-            confidence_interval = stats.norm.interval(0.95, loc=mean_reward, scale=std_dev)
-            # Same as 1.96 * std_dev / sqrt(len(rewards))
-            half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
-
+        mean_reward, half_conf_int, std_dev = calculate_stats(rewards)
         result_stats.append(AverageByKeyResult(key, len(rewards), mean_reward, half_conf_int, std_dev))
 
     return result_stats
 
+
+def calculate_stats(rewards: np.ndarray) -> tuple[float, float, float]:
+    mean_reward = rewards.mean()
+
+    # Compute standard deviation
+    std_dev = rewards.std(ddof=1)
+
+    # Handle Positive and negative run having the same reward
+    if std_dev == 0:
+        half_conf_int = 0
+    else:
+        # Compute confidence intervals
+        confidence_interval = stats.norm.interval(0.95, loc=mean_reward, scale=std_dev)
+        # Same as 1.96 * std_dev / sqrt(len(rewards))
+        half_conf_int = (confidence_interval[1] - confidence_interval[0]) / 2 / sqrt(len(rewards))
+
+    return mean_reward, half_conf_int, std_dev
 
 def estimate(file, detailed):
     # load in the strata distribution
