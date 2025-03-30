@@ -58,8 +58,8 @@ def print_missing_key_values(previous_key: int, current_key: int):
     """
     missing_value = "-"
     for key in range(previous_key + 1, current_key):
-        # <program length> <number of programs with given length> <AAR> <HCI> <SD>
-        print(f"{key:>3} {0:>3} {missing_value:^7} +/- {missing_value:^4.1} SD {missing_value:^4.1}")
+        # <group key> <number of results with given key> <AAR> <HCI> <SD>
+        print(f"{key:>3} {0:>3} {missing_value:^7} +/- {missing_value:^4.1} SD  {missing_value}")
 
 
 @dataclasses.dataclass
@@ -70,10 +70,15 @@ class AverageByKeyResult:
     SD is the standard deviation
     """
     group_key: Any
-    rewards_len: int
+    rewards: np.ndarray
     AAR: float
     HCI: float
     SD: float
+
+    @staticmethod
+    def from_rewards(groupy_key, rewards: np.ndarray):
+        mean_reward, half_conf_int, std_dev = calculate_stats(rewards)
+        return AverageByKeyResult(groupy_key, rewards, mean_reward, half_conf_int, std_dev)
 
 
 def print_bucketed_results(results: list[AverageByKeyResult], bucket_size: int) -> None:
@@ -101,35 +106,43 @@ def print_bucketed_results(results: list[AverageByKeyResult], bucket_size: int) 
         for x in result_values:
             result_bucket.extend(result_dict.get(x, []))
 
+        result_values = list(result_values)
         if len(result_bucket) == 0:
-            print(f"{list(result_values)} {"-": >3} {"-":>7}")
+            # <group keys> <number of results with given key> <AAR> <HCI> <SD>
+            missing_value = "-"
+            print(f"{result_values} {0:>3} {missing_value:^7} +/- {missing_value:^4.1} SD {missing_value:^4.1}")
             continue
 
-        agg_rewards_len = sum(x.rewards_len for x in result_bucket)
-        agg_aar = np.average([x.AAR for x in result_bucket], weights=[x.rewards_len for x in result_bucket])
-        print(f"{list(result_values)} {agg_rewards_len: >3} {agg_aar:>7.1f}")
+        rewards = np.concatenate([x.rewards for x in result_bucket])
+        aggregated = AverageByKeyResult.from_rewards(result_values, rewards)
+        print_average_by_key_results([aggregated], print_missing=False)
 
 
-def print_average_by_key_results(results: list[AverageByKeyResult]) -> None:
+def print_average_by_key_results(results: list[AverageByKeyResult], print_missing: bool) -> None:
     """
     Print format:
     <group_key> <number of programs with given length> <AAR> <HCI> <SD>
 
     :param results:
+    :param print_missing:
     :return:
     """
     prev_key = results[0].group_key
     for result in results:
 
-        print_missing_key_values(prev_key, result.group_key)
-        prev_key = result.group_key
-        if result.rewards_len < 4:
+        if print_missing:
+            print_missing_key_values(prev_key, result.group_key)
+            prev_key = result.group_key
+
+        if isinstance(result.group_key, int):
+            result.group_key = f"{result.group_key: >3}"
+        if len(result.rewards) < 4:
             # Don't report half CI with less than 4 samples
-            # program length> <number of programs with given length> <AAR>
-            print(f"{result.group_key: >3} {result.rewards_len: >3} {result.AAR:>7.1f}")
+            # <group_key> <number of programs with given length> <AAR>
+            print(f"{result.group_key} {len(result.rewards): >3} {result.AAR:>7.1f}")
         else:
-            # <program length> <number of programs with given length> <AAR> <HCI> <SD>
-            print(f"{result.group_key: >3} {result.rewards_len: >3} {result.AAR:>7.1f} "
+            # <group_key> <number of programs with given length> <AAR> <HCI> <SD>
+            print(f"{result.group_key} {len(result.rewards): >3} {result.AAR:>7.1f} "
                   f"+/- {result.HCI:>4.1f} SD {result.SD:>4.1f}")
 
 
@@ -165,9 +178,7 @@ def average_by_key(file_name: str, group_key=lambda x: len(x.program)) -> list[A
 
         # Get rewards from positive and negative runs
         rewards = array([x.reward_1 for x in group] + [x.reward_2 for x in group])
-
-        mean_reward, half_conf_int, std_dev = calculate_stats(rewards)
-        result_stats.append(AverageByKeyResult(key, len(rewards), mean_reward, half_conf_int, std_dev))
+        result_stats.append(AverageByKeyResult.from_rewards(key, rewards))
 
     return result_stats
 
@@ -286,7 +297,7 @@ def main():
             results = average_by_key(file_name, group_key=lambda x: len(x.program))
 
             if args.bucket_size == 1:
-                print_average_by_key_results(results)
+                print_average_by_key_results(results, print_missing=True)
             else:
                 print_bucketed_results(results, args.bucket_size)
 

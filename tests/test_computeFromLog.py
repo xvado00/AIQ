@@ -208,7 +208,8 @@ def test_print_bucketed_by_program_len():
         with redirect_stdout(output):
             print_bucketed_results(results, bucket_size)
 
-    expected = ("[1, 2]   8    -0.1\n"
-                "[3, 4]   -       -\n"
-                "[5]   4    -0.6\n")
+    expected = ("[1, 2]   8    -0.1 +/-  0.5 SD  0.8\n"
+                "[3, 4]   0    -    +/-  -   SD  -  \n"
+                "[5]   4    -0.6 +/-  0.6 SD  0.6\n")
+
     assert output.getvalue() == expected
