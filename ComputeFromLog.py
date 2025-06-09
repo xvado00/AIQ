@@ -284,7 +284,7 @@ def main():
                         help="Reports average accumulated rewards by program length. "
                              "Needs log format from AIQ --log_agent_failures")
     parser.add_argument("--bucket_size", default=1, type=int,
-                        help="Bucket size for aggregation of program lengths.")
+                        help="Bucket size for aggregation of program lengths")
     parser.add_argument("log_files", nargs="+", help="Path to log files")
     args = parser.parse_args()
     if args.bucket_size != 1 and not args.by_program_length:
