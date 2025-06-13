@@ -280,11 +280,19 @@ def main():
 
     parser.add_argument("--full", action="store_true",
                         help="Reports also the strata statistics")
-    parser.add_argument("--by_program_length", action="store_true",
-                        help="Reports average accumulated rewards by program length. "
-                             "Needs log format from AIQ --log_agent_failures")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--by_program_length", action="store_true",
+                       help="Reports average accumulated rewards by program length. "
+                            "Needs log format from AIQ --log_agent_failures.")
+    group.add_argument("--by_program", action="store_true",
+                       help=r"Reports average accumulated rewards by program. "
+                            r"Needs log format from AIQ --log_agent_failures. "
+                            r"Combine AIQ logs with: awk 'FNR==1 && NR!=1 {next} 1' [LOGFILES].")
+
     parser.add_argument("--bucket_size", default=1, type=int,
-                        help="Bucket size for aggregation of program lengths")
+                        help="Bucket size for aggregation of program lengths (only used with --by_program_length).")
+
     parser.add_argument("log_files", nargs="+", help="Path to log files")
     args = parser.parse_args()
     if args.bucket_size != 1 and not args.by_program_length:
@@ -300,6 +308,13 @@ def main():
                 print_average_by_key_results(results, print_missing=True)
             else:
                 print_bucketed_results(results, args.bucket_size)
+
+            print(f":{basename(file_name)}")
+            print()
+
+        elif args.by_program:
+            results = average_by_key(file_name, group_key=lambda x: x.program)
+            print_average_by_key_results(results, print_missing=False)
 
             print(f":{basename(file_name)}")
             print()
